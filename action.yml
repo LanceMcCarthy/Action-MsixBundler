@@ -1,0 +1,117 @@
+name: 'MSIX Bundler'
+description: 'This action creates an msixbundle file from a list of MSIX packages'
+branding:
+  icon: 'box'
+  color: 'purple'
+inputs:
+  msix-paths:
+    description: 'A comma separated list of file paths of each msix to be included in the msix bundle.'
+    required: true
+    default: ''
+  msixbundle-filename:
+    description: 'The filename of the .msixbundle file to be saved (e.g. MyApp_1.0.0.0_x86_x64.msixbundle)'
+    required: true
+    default: ''
+  sdk-version:
+    description: 'The version of makeappx.exe and signtool.exe (default is 10.0.19041.0). For more info, see the official docs at https://docs.microsoft.com/en-us/windows/msix/packaging-tool/bundle-msix-packages#step-1-find-makeappxexe'
+    required: false
+    default: '10.0.19041.0'
+  architecture:
+    description: 'The architecture version of makeappx.exe to use (default is x86). For more info, see the official docs at https://docs.microsoft.com/en-us/windows/msix/packaging-tool/bundle-msix-packages#step-1-find-makeappxexe'
+    required: false
+    default: 'x86'
+  enable-bundle-signing:
+    description: 'Enables signing the bundle using Microsoft's signtool.exe'
+    required: false
+    default: false
+  certificate-path:
+    description: 'Path to the PFX file of the code signing certificate'
+    required: false
+    default: ''
+  certificate-private-key:
+    description: 'The private key (password) to be used with the PFX file to sign the bundle.'
+    required: false
+    default: ''
+  signing-hash-algorithm:
+    description: 'The hash algorithm used for signing (default is SHA256).'
+    required: false
+    default: 'SHA256'
+outputs:
+  msixbundle-path:
+    description: "The full file path to the generated msixbundle file."
+    value: ${{ steps.sign-bundle.outputs.final-msixbundle-file-path }}
+runs:
+  using: "composite"
+  steps:
+    - id: process-files
+      shell: pwsh
+      run: |
+        $paths = ${{ inputs.msix-paths }}.split(",")
+
+        $count = $paths.count
+        echo "Total: $count MSIX file paths detected"
+
+        $tempPackagesFolder = Join-Path -Path $env:TEMP -ChildPath "AppPackages"
+
+        New-Item -Path $tempPackagesFolder -ItemType Directory
+
+        $paths | ForEach-Object {
+          $outputFileName = Split-Path $_ -leaf
+
+          $inputFileName = $_.Trim()
+          
+          $destinationPath = Join-Path -Path $tempPackagesFolder -ChildPath $outputFileName
+
+          Copy-Item -Path $inputFileName -Destination $destinationPath
+        }
+
+        # set an output variable for subsequent steps to use
+        echo "::set-output name=temp_packages_folder::$tempPackagesFolder"
+
+    - id: make-bundle
+      shell: pwsh
+      run: |
+        $packagesFolder = ${{ steps.process-files.outputs.temp_packages_folder }}
+        $sdkVersion = ${{ inputs.sdk-version }}
+        $arch = ${{ inputs.architecture }}
+
+        $msixBundlePath = Join-Path -Path $packagesFolder -ChildPath ${{ inputs.msixbundle-filename }}
+
+        Write-Host "Adding appropriate tooling directory to PATH"
+        $exePath = ";C:\Program Files (x86)\Windows Kits\10\bin\$sdkVersion\$arch\"
+        $env:Path += $exePath
+        
+        # From https://docs.microsoft.com/en-us/windows/msix/packaging-tool/bundle-msix-packages#step-2-bundle-the-packages
+        MakeAppx.exe bundle /d $inputFolder /p $outputPath
+
+        # set an output variable for subsequent steps to use
+        echo "::set-output name=msixbundle-file-path::$msixBundlePath"
+
+    - id: sign-bundle
+      shell: pwsh
+      run: |
+        $msixBundlePath = ${{ steps.make-bundle.outputs.msixbundle-file-path }}
+
+        if (${{ inputs.enable-bundle-signing }}){
+          Write-Host "Signing msix bundle."
+
+          $sdkVersion = ${{ inputs.sdk-version }}
+          $arch = ${{ inputs.architecture }}
+          $hashAlgo = ${{ inputs.signing-hash-algorithm }}
+          $certPath = ${{ inputs.certificate-path }}
+          $certKey = ${{ inputs.certificate-private-key }}
+
+          Write-Host "Adding appropriate tooling directory to PATH"
+          $exePath = ";C:\Program Files (x86)\Windows Kits\10\bin\$sdkVersion\$arch\"
+          $env:Path += $exePath
+
+          # From https://docs.microsoft.com/en-us/windows/msix/packaging-tool/bundle-msix-packages#step-3-sign-the-bundle
+           SignTool.exe sign /fd $hashAlgo /a /f $certPath /p $certKey $msixBundlePath
+
+           Write-Host "Signing complete!"
+        } else {
+          Write-Host "Skipped msixbundle signing."
+        }
+
+        # This is used as the Action's Output variable
+        echo "::set-output name=final-msixbundle-file-path::$msixBundlePath"

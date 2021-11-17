@@ -1,0 +1,40 @@
+name: Development
+
+on:
+  push:
+    branches:
+      - development
+
+jobs:
+  test_bunding_with_signing:
+    runs-on: windows-latest
+    name: A job to say hello
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Decode the Pfx
+        id: save-pfx
+        run: |
+          $pfx_cert_byte = [System.Convert]::FromBase64String("${{ secrets.PFX_BASE64 }}")
+          $currentDirectory = Get-Location
+          $certificatePath = Join-Path -Path $currentDirectory -ChildPath "LancelotSoftware.pfx"
+          [IO.File]::WriteAllBytes("$certificatePath", $pfx_cert_byte)
+
+      - name: Test Bundling with Code Signing
+        id: bundle-up
+        uses: ./
+        with:
+          msix-paths: "TestFiles\AppPackages\MediaFileManager.Desktop_2021.722.1.0_x86.msix, TestFiles\AppPackages\MediaFileManager.Desktop_2021.722.1.0_x64.msix"
+          msixbundle-filename: "MediaFileManager.Desktop_2021.722.1.0_x86_x64.msixbundle"
+          enable-bundle-signing: true
+          certificate-path: 'LancelotSoftware.pfx'
+          certificate-private-key: ${{ secrets.PFX_PRIVATE_KEY }}
+          sdk-version: "10.0.19041.0"
+          architecture: "x86"
+      
+      - name: Verify bundle output
+        run: echo ${{ steps.bundle-up.outputs.msixbundle-path }}
+        shell: pwsh
