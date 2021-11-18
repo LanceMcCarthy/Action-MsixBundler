@@ -32,7 +32,7 @@ jobs:
           echo "discovered $msixFiles.count MSIX files"
           $msixPaths = ""
           $msixFiles | ForEach-Object {
-            $msixPaths += "$_.FullName;"
+            $msixPaths += "$_;"
           }
           $msixPaths.trim(";")
 
