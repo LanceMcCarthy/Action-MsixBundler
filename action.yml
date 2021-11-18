@@ -103,7 +103,11 @@ runs:
           Write-Host "Skipped msixbundle signing."
         }
 
-        if([string]::IsNullOrWhiteSpace($msixBundlePath))
+        if([string]::IsNullOrWhiteSpace($msixBundlePath)){
+          Write-Host "The output file path is empty, something went wrong. Check the log output for details."
+          Write-Host $_.ScriptStackTrace
+          exit 1
+        }
 
         # Set the output variable
         echo "::set-output name=final_path::$msixBundlePath"
