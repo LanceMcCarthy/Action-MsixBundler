@@ -23,7 +23,7 @@ jobs:
           [IO.File]::WriteAllBytes("$certificatePath", $pfx_cert_byte)
 
       - name: Test Bundling with Code Signing
-        id: bundle-up
+        id: bundler
         uses: ./
         with:
           msix-paths: "TestFiles/AppPackages/MediaFileManager.Desktop_2021.722.1.0_x86.msix;TestFiles/AppPackages/MediaFileManager.Desktop_2021.722.1.0_x64.msix"
@@ -36,4 +36,7 @@ jobs:
       
       - name: Verify bundle output
         shell: pwsh
-        run: echo ${{ steps.bundle-up.outputs.msixbundle-path }}
+        run: |
+          $msixBundlePath = "placeholder value"
+          $msixBundlePath = ${{ steps.bundler.outputs.msixbundle-path }}
+          echo $msixBundlePath
