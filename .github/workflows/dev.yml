@@ -12,11 +12,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-        with:
-          fetch-depth: 0
 
       - name: Decode the Pfx
         id: save-pfx
+        shell: pwsh
         run: |
           $pfx_cert_byte = [System.Convert]::FromBase64String("${{ secrets.PFX_BASE64 }}")
           $currentDirectory = Get-Location
@@ -25,7 +24,7 @@ jobs:
 
       - name: Test Bundling with Code Signing
         id: bundle-up
-        uses: '.\'
+        uses: ./
         with:
           msix-paths: "TestFiles/AppPackages/MediaFileManager.Desktop_2021.722.1.0_x86.msix, TestFiles/AppPackages/MediaFileManager.Desktop_2021.722.1.0_x64.msix"
           msixbundle-filename: "MediaFileManager.Desktop_2021.722.1.0_x86_x64.msixbundle"
@@ -36,5 +35,5 @@ jobs:
           architecture: "x86"
       
       - name: Verify bundle output
-        run: echo ${{ steps.bundle-up.outputs.msixbundle-path }}
         shell: pwsh
+        run: echo ${{ steps.bundle-up.outputs.msixbundle-path }}
