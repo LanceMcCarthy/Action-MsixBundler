@@ -43,75 +43,69 @@ outputs:
 runs:
   using: "composite"
   steps:
-    - id: process-files
+    - id: make-bundle
       shell: pwsh
       run: |
+        ## ******************************************* ##
+        ## ********* STEP 1. PROCESS FILES *********** ##
+        ## ******************************************* ##
+
         $paths = ${{ inputs.msix-paths }}.split(",")
 
         $count = $paths.count
-        echo "Total: $count MSIX file paths detected"
+        echo "MSIX files requested for bundling: $count "
 
+        # Creating a folder in temp to copy in and process msix files
         $tempPackagesFolder = Join-Path -Path $env:TEMP -ChildPath "AppPackages"
-
         New-Item -Path $tempPackagesFolder -ItemType Directory
 
+        # Copy each MSIX file into temporary foler
         $paths | ForEach-Object {
           $outputFileName = Split-Path $_ -leaf
-
           $inputFileName = $_.Trim()
-          
           $destinationPath = Join-Path -Path $tempPackagesFolder -ChildPath $outputFileName
 
           Copy-Item -Path $inputFileName -Destination $destinationPath
         }
 
-        # set an output variable for subsequent steps to use
-        echo "::set-output name=temp_packages_folder::$tempPackagesFolder"
+        ## ******************************************* ##
+        ## ******** STEP 2. BUNDLE PACKAGES ********** ##
+        ## ******************************************* ##
 
-    - id: make-bundle
-      shell: pwsh
-      run: |
-        $packagesFolder = ${{ steps.process-files.outputs.temp_packages_folder }}
+        # Get the desired SDK and architecture
         $sdkVersion = ${{ inputs.sdk-version }}
         $arch = ${{ inputs.architecture }}
 
-        $msixBundlePath = Join-Path -Path $packagesFolder -ChildPath ${{ inputs.msixbundle-filename }}
+        # Create a full path for the bundle to be saved to
+        $msixBundlePath = Join-Path -Path $tempPackagesFolder -ChildPath ${{ inputs.msixbundle-filename }}
 
-        Write-Host "Adding appropriate tooling directory to PATH"
+        # IMPORTANT - We need to add the SDK's folder to PATH so that we can use the approrpiate MakeAppx and SignTool
         $exePath = ";C:\Program Files (x86)\Windows Kits\10\bin\$sdkVersion\$arch\"
         $env:Path += $exePath
         
         # From https://docs.microsoft.com/en-us/windows/msix/packaging-tool/bundle-msix-packages#step-2-bundle-the-packages
-        MakeAppx.exe bundle /d $inputFolder /p $outputPath
+        MakeAppx.exe bundle /d $inputFolder /p $msixBundlePath
 
-        # set an output variable for subsequent steps to use
-        echo "::set-output name=msixbundle-file-path::$msixBundlePath"
+        ## ******************************************* ##
+        ## ********** STEP 3. SIGN BUNDLE ************ ##
+        ## ******************************************* ##
 
-    - id: sign-bundle
-      shell: pwsh
-      run: |
-        $msixBundlePath = ${{ steps.make-bundle.outputs.msixbundle-file-path }}
-
+        # check if the user wants to sign the bundle
         if (${{ inputs.enable-bundle-signing }}){
           Write-Host "Signing msix bundle."
 
-          $sdkVersion = ${{ inputs.sdk-version }}
-          $arch = ${{ inputs.architecture }}
           $hashAlgo = ${{ inputs.signing-hash-algorithm }}
           $certPath = ${{ inputs.certificate-path }}
           $certKey = ${{ inputs.certificate-private-key }}
 
-          Write-Host "Adding appropriate tooling directory to PATH"
-          $exePath = ";C:\Program Files (x86)\Windows Kits\10\bin\$sdkVersion\$arch\"
-          $env:Path += $exePath
-
           # From https://docs.microsoft.com/en-us/windows/msix/packaging-tool/bundle-msix-packages#step-3-sign-the-bundle
-           SignTool.exe sign /fd $hashAlgo /a /f $certPath /p $certKey $msixBundlePath
+          SignTool.exe sign /fd $hashAlgo /a /f $certPath /p $certKey $msixBundlePath
 
-           Write-Host "Signing complete!"
+          Write-Host "Signing complete!"
         } else {
+
           Write-Host "Skipped msixbundle signing."
         }
 
-        # This is used as the Action's Output variable
-        echo "::set-output name=final-msixbundle-file-path::$msixBundlePath"
+        # Set the output variable
+        echo "::set-output name=final-msixbundle-file-path::$(echo $msixBundlePath)"
