@@ -6,7 +6,7 @@ branding:
   color: 'purple'
 inputs:
   msix-paths:
-    description: 'A semi-colon separated list of file paths, to each msix to be included in the msixbundle output.'
+    description: 'A semi-colon separated list of file paths to each msix to be included in the msixbundle output.'
     required: true
     default: ''
   msixbundle-filename:
@@ -50,14 +50,20 @@ runs:
         ## ********* STEP 1. PROCESS FILES *********** ##
         ## ******************************************* ##
 
-        $paths = ${{ inputs.msix-paths }}.split("{;}")
+        $msixPaths = ${{ inputs.msix-paths }}
+        $paths = $msixPaths -split ";"
 
         $count = $paths.count
         echo "MSIX files requested for bundling: $count "
 
+        $runId = ${{ env.GITHUB_RUN_ID }}
+
         # Creating a folder in temp to copy in and process msix files
-        $tempPackagesFolder = Join-Path -Path $env:TEMP -ChildPath "AppPackages"
-        New-Item -Path $tempPackagesFolder -ItemType Directory
+        $tempPackagesFolder = Join-Path -Path $env:TEMP -ChildPath "AppPackages" -AdditionalChildPath $runId
+        New-Item -Path $tempPackagesFolder -ItemType Directory -Force
+
+        # clean out any old msix files from a re-run of the same workflow (only reruns will be affected, the temp directory has a RunID suffix)
+        Remove-Item $tempPackagesFolder\*.*
 
         # Copy each MSIX file into temporary foler
         $paths | ForEach-Object {
@@ -75,9 +81,10 @@ runs:
         # Get the desired SDK and architecture
         $sdkVersion = ${{ inputs.sdk-version }}
         $arch = ${{ inputs.architecture }}
+        $bundleFileName = ${{ inputs.msixbundle-filename }}
 
         # Create a full path for the bundle to be saved to
-        $msixBundlePath = Join-Path -Path $tempPackagesFolder -ChildPath ${{ inputs.msixbundle-filename }}
+        $msixBundlePath = Join-Path -Path $tempPackagesFolder -ChildPath $bundleFileName
 
         # IMPORTANT - We need to add the SDK's folder to PATH so that we can use the approrpiate MakeAppx and SignTool
         $exePath = ";C:\Program Files (x86)\Windows Kits\10\bin\$sdkVersion\$arch\"
