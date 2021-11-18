@@ -50,7 +50,7 @@ runs:
         ## ********* STEP 1. PROCESS FILES *********** ##
         ## ******************************************* ##
 
-        $paths = ${{ inputs.msix-paths }}.split(",")
+        $paths = ${{ inputs.msix-paths }}.split("{,}")
 
         $count = $paths.count
         echo "MSIX files requested for bundling: $count "
