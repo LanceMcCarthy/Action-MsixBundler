@@ -6,7 +6,7 @@ branding:
   color: 'purple'
 inputs:
   msix-paths:
-    description: 'A comma separated list of file paths, to each msix to be included in the msixbundle output.'
+    description: 'A semi-colon separated list of file paths, to each msix to be included in the msixbundle output.'
     required: true
     default: ''
   msixbundle-filename:
@@ -50,10 +50,10 @@ runs:
         ## ********* STEP 1. PROCESS FILES *********** ##
         ## ******************************************* ##
 
-        $paths = ${{ inputs.msix-paths }}.split("{,}")
+        $paths = ${{ inputs.msix-paths }}.split("{;}")
 
-        #$count = $paths.count
-        #echo "MSIX files requested for bundling: $count "
+        $count = $paths.count
+        echo "MSIX files requested for bundling: $count "
 
         # Creating a folder in temp to copy in and process msix files
         $tempPackagesFolder = Join-Path -Path $env:TEMP -ChildPath "AppPackages"

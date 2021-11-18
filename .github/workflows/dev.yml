@@ -26,7 +26,7 @@ jobs:
         id: bundle-up
         uses: ./
         with:
-          msix-paths: "TestFiles/AppPackages/MediaFileManager.Desktop_2021.722.1.0_x86.msix, TestFiles/AppPackages/MediaFileManager.Desktop_2021.722.1.0_x64.msix"
+          msix-paths: "TestFiles/AppPackages/MediaFileManager.Desktop_2021.722.1.0_x86.msix;TestFiles/AppPackages/MediaFileManager.Desktop_2021.722.1.0_x64.msix"
           msixbundle-filename: "MediaFileManager.Desktop_2021.722.1.0_x86_x64.msixbundle"
           enable-bundle-signing: true
           certificate-path: 'LancelotSoftware.pfx'
