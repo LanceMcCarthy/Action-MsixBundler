@@ -1,5 +1,6 @@
 name: 'MSIX Bundler'
 description: 'This action creates an msixbundle file from a list of MSIX packages'
+author: 'Lance McCarthy'
 branding:
   icon: 'box'
   color: 'purple'
