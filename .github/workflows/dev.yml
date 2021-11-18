@@ -22,37 +22,56 @@ jobs:
           $certificatePath = Join-Path -Path $currentDirectory -ChildPath "LancelotSoftware.pfx"
           [IO.File]::WriteAllBytes("$certificatePath", $pfx_cert_byte)
 
-      - name: Decode the Pfx
-        id: gather-msix-files
+      - name: Gather MSIX files
+        id: gather
         shell: pwsh
         run: |
           $currentDirectory = Get-Location
           $packagesFolder = Join-Path -Path $currentDirectory -ChildPath "TestFiles\AppPackages"
           $msixFiles = Get-ChildItem -Path $packagesFolder -Recurse -Include *.msix
           echo "discovered $msixFiles.count MSIX files"
-          $msixPaths = ""
+
+          echo "copying MSIX files into a single, separate, folder for processing"
+          $tempMsixFolder = Join-Path -Path $currentDirectory -ChildPath "MsixFiles"
+          
           $msixFiles | ForEach-Object {
-            $msixPaths += "$_;"
+            $outputFileName = Split-Path $_ -leaf
+            $destinationFilePath = Join-Path -Path $tempMsixFolder -ChildPath $outputFileName
+
+            Copy-Item -Path $_ -Destination $destinationFilePath
+
+            echo "Successfully copied to $destinationFilePath"
           }
-          $msixPaths.trim(";")
 
-          echo "::set-output name=msix-files::$(echo $msixPaths)"
+          $bundleFilePath = Join-Path -Path $tempMsixFolder -ChildPath "MediaFileManager.Desktop_2021.722.1.0_x86_x64.msixbundle"
 
+          echo "::set-output name=msix_folderpath::$tempMsixFolder"
+          echo "::set-output name=msixbundle_filepath::$bundleFilePath"
+
+      - name: Verify Gather Output
+        shell: pwsh
+        run: |
+          $msixesFolder = "${{ steps.gather.outputs.msix_folderpath }}"
+          $outputPath = "${{ steps.gather.outputs.msixbundle_filepath }}"
+          echo "Input folderpath => $msixesFolder"
+          echo "Output filepath => $outputPath"
+      
       - name: Test Bundling with Code Signing
         id: bundler
         uses: ./
         with:
-          msix-paths: ${{ steps.gather-msix-files.outputs.msix-files }}
-          msixbundle-filename: "MediaFileManager.Desktop_2021.722.1.0_x86_x64.msixbundle"
+          msix-folder: ${{ steps.gather.outputs.msix_folderpath }}
+          msixbundle-filepath: ${{ steps.gather.outputs.msixbundle_filepath }}
+          msixbundle-version: "2021.722.1.0"
           enable-bundle-signing: true
           certificate-path: 'LancelotSoftware.pfx'
           certificate-private-key: ${{ secrets.PFX_PRIVATE_KEY }}
           sdk-version: "10.0.19041.0"
           architecture: "x86"
       
-      - name: Verify bundle output
+      - name: Verify Bundle Output
         shell: pwsh
         run: |
           $msixBundlePath = "placeholder value"
-          $msixBundlePath = ${{ steps.bundler.outputs.msixbundle-path }}
+          $msixBundlePath = ${{ steps.bundler.outputs.msixbundle_path }}
           echo $msixBundlePath

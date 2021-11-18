@@ -5,14 +5,18 @@ branding:
   icon: 'box'
   color: 'purple'
 inputs:
-  msix-paths:
-    description: 'A semi-colon separated list of file paths to each msix to be included in the msixbundle output.'
+  msix-folder:
+    description: 'The complete folder path containing the MSIX files to be bundled.'
     required: true
     default: ''
-  msixbundle-filename:
-    description: 'The filename of the .msixbundle file to be saved (e.g. MyApp_1.0.0.0_x86_x64.msixbundle).'
+  msixbundle-filepath:
+    description: 'The complete file path of the .msixbundle file to be created.'
     required: true
     default: ''
+  msixbundle-version:
+    description: 'Specifies the version number of the bundle. The version number must be in four parts separated by periods in the form: <Major>.<Minor>.<Build>.<Revision>.'
+    required: true
+    default: '0.0.0.0'
   sdk-version:
     description: 'The version of makeappx.exe and signtool.exe (default is 10.0.19041.0).'
     required: false
@@ -37,73 +41,74 @@ inputs:
     required: false
     default: 'SHA256'
 outputs:
-  msixbundle-path:
+  msixbundle_path:
     description: "The absolute file path to the msixbundle file."
-    value: ${{ steps.sign-bundle.outputs.final-msixbundle-file-path }}
+    value: ${{ steps.bundle.outputs.final_path }}
 runs:
   using: "composite"
   steps:
-    - id: make-bundle
+    - id: bundle
       shell: pwsh
       run: |
         ## ******************************************* ##
         ## ********* STEP 1. PROCESS FILES *********** ##
         ## ******************************************* ##
-        echo "Splitting file paths..."
-        $msixPaths = ${{ inputs.msix-paths }}
-        $paths = $msixPaths -split ";"
+        # echo "Splitting file paths..."
+        # $msixPaths = ${{ inputs.msix-paths }}
+        # $paths = $msixPaths -split ";"
 
-        $count = $paths.count
-        echo "MSIX files requested for bundling: $count"
+        # $count = $paths.count
+        # echo "MSIX files requested for bundling: $count"
 
-        echo "Creating a folder in temp to copy in and process msix files"
-        $tempPackagesFolder = Join-Path -Path $env:TEMP -ChildPath "AppPackages\$env.GITHUB_RUN_NUMBER"
-        New-Item -Path $tempPackagesFolder -ItemType Directory -Force
+        # echo "Creating a folder in temp to copy in and process msix files"
+        # $tempPackagesFolder = Join-Path -Path $env:TEMP -ChildPath "AppPackages"
+        # New-Item -Path $tempPackagesFolder -ItemType Directory -Force
 
-        echo "Created $tempPackagesFolder"
+        # echo "Created $tempPackagesFolder"
 
-        echo "Cleaning old msix files from temp folder"
-        Remove-Item $tempPackagesFolder\*.msix
+        # echo "Cleaning old msix files from temp folder"
+        # Remove-Item $tempPackagesFolder\*.msix
 
-        echo "Coping each MSIX file into temporary folder"
-        $paths | ForEach-Object {
-          $outputFileName = Split-Path $_ -leaf
-          $inputFileName = $_.Trim()
-          $destinationPath = Join-Path -Path $tempPackagesFolder -ChildPath $outputFileName
+        # echo "Coping each MSIX file into temporary folder"
+        # $paths | ForEach-Object {
+        #   $outputFileName = Split-Path $_ -leaf
+        #   $inputFileName = $_.Trim()
+        #   $destinationPath = Join-Path -Path $tempPackagesFolder -ChildPath $outputFileName
 
-          Copy-Item -Path $inputFileName -Destination $destinationPath
+        #   Copy-Item -Path $inputFileName -Destination $destinationPath
 
-          echo "Successfully copied $destinationPath"
-        }
+        #   echo "Successfully copied $destinationPath"
+        # }
 
-        ## ******************************************* ##
-        ## ******** STEP 2. BUNDLE PACKAGES ********** ##
-        ## ******************************************* ##
+        ## ********************************** ##
+        ## ******** STEP 1. BUNDLE ********** ##
+        ## ********************************** ##
 
-        # Get the desired SDK and architecture
-        #$sdkVersion = "${{ inputs.sdk-version }}"
-        #$arch = "${{ inputs.architecture }}"
-        #$bundleFileName = "${{ inputs.msixbundle-filename }}"
+        $msixesFolder = "${{ inputs.msix-folder }}"
+        echo "MSIX input folder -> $msixesFolder"
 
-        echo "Assembling path for final msixbundle file..."
+        $msixBundlePath = "${{ inputs.msixbundle-filepath }}"
+        $msixbundleVersion = "${{ inputs.msixbundle-version }}"
+
+        #echo "Assembling path for final msixbundle file..."
         #$msixBundlePath = Join-Path -Path $tempPackagesFolder -ChildPath $bundleFileName
-        $msixBundlePath = Join-Path -Path $tempPackagesFolder -ChildPath ${{ inputs.msixbundle-filename }}
-        echo "will use $msixBundlePath"
+        #$msixBundlePath = Join-Path -Path $tempPackagesFolder -ChildPath ${{ inputs.msixbundle-filepath }}
+        #echo "will use $msixBundlePath"
 
-        # IMPORTANT - We need to add the SDK's folder to PATH so that we can use the approrpiate MakeAppx and SignTool
+        # IMPORTANT - We need to add the SDK's folder to PATH so that we can use the correct MakeAppx and SignTool
         #$sdkToolsPath = Join-Path -Path ";C:\Program Files (x86)\Windows Kits\10\bin" -ChildPath $sdkVersion -AdditionalChildPath $arch
 
         echo "Adding SDK tools folder to PATH"
         $sdkToolsPath = Join-Path -Path "C:\Program Files (x86)\Windows Kits\10\bin" -ChildPath ${{ inputs.sdk-version }} -AdditionalChildPath ${{ inputs.architecture }}
         $env:Path += ";$sdkToolsPath"
-        
+
         echo "Creating bundle..."
         # From https://docs.microsoft.com/en-us/windows/msix/packaging-tool/bundle-msix-packages#step-2-bundle-the-packages
-        MakeAppx.exe bundle /d $inputFolder /p $msixBundlePath
+        MakeAppx.exe bundle /bv $msixbundleVersion /d $msixesFolder /p $msixBundlePath
 
-        ## ******************************************* ##
-        ## ********** STEP 3. SIGN BUNDLE ************ ##
-        ## ******************************************* ##
+        ## ************************************ ##
+        ## ********** STEP 2. SIGN ************ ##
+        ## ************************************ ##
 
         # check if the user wants to sign the bundle
         if (${{ inputs.enable-bundle-signing }}){
@@ -123,4 +128,4 @@ runs:
         }
 
         # Set the output variable
-        echo "::set-output name=final-msixbundle-file-path::$(echo $msixBundlePath)"
+        echo "::set-output name=final_path::$msixBundlePath"
