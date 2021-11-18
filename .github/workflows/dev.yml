@@ -37,29 +37,28 @@ jobs:
           
           $msixFiles | ForEach-Object {
             Copy-Item -Path $_ -Destination $tempMsixFolder
-
             echo "Successfully copied $_ to $tempMsixFolder"
           }
 
-          $desiredMsixBundlePath = Join-Path -Path $tempMsixFolder -ChildPath "MediaFileManager.Desktop_2021.722.1.0_x86_x64.msixbundle"
+          $desiredMsixBundleFileName = "MediaFileManager.Desktop_2021.722.1.0_x86_x64.msixbundle"
 
           echo "::set-output name=msix_folderpath::$tempMsixFolder"
-          echo "::set-output name=msixbundle_filepath::$desiredMsixBundlePath"
+          echo "::set-output name=msixbundle_filename::$desiredMsixBundleFileName"
 
       - name: Verify Gather Output
         shell: pwsh
         run: |
           $msixesFolder = "${{ steps.gather.outputs.msix_folderpath }}"
-          $outputPath = "${{ steps.gather.outputs.msixbundle_filepath }}"
-          echo "Input folderpath => $msixesFolder"
-          echo "Output filepath => $outputPath"
+          $bundleFileName = "${{ steps.gather.outputs.msixbundle_filename }}"
+          echo "Input MSIXes Folder Path => $msixesFolder"
+          echo "Output File Name => $bundleFileName"
       
       - name: Test Bundling with Code Signing
         id: bundler
         uses: ./
         with:
           msix-folder: ${{ steps.gather.outputs.msix_folderpath }}
-          msixbundle-filepath: ${{ steps.gather.outputs.msixbundle_filepath }}
+          msixbundle-filename: ${{ steps.gather.outputs.msixbundle_filename }}
           msixbundle-version: "2021.722.1.0"
           enable-bundle-signing: true
           certificate-path: 'LancelotSoftware.pfx'
@@ -70,6 +69,9 @@ jobs:
       - name: Verify Bundle Output
         shell: pwsh
         run: |
-          $msixBundlePath = "placeholder value"
-          $msixBundlePath = ${{ steps.bundler.outputs.msixbundle_path }}
-          echo $msixBundlePath
+          $msixesFolder = "${{ steps.gather.outputs.msix_folderpath }}"
+          $bundleFileName = "${{ steps.gather.outputs.msixbundle_filename }}"
+          $msixBundlePath = "${{ steps.bundler.outputs.msixbundle_path }}"
+          echo "Input Folder Path => $msixesFolder"
+          echo "Desired File Name => $bundleFileName"
+          echo "Generated msixbundle path => $msixBundlePath"
