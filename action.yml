@@ -6,31 +6,30 @@ branding:
   color: 'purple'
 inputs:
   msix-paths:
-    description: 'A comma separated list of file paths of each msix to be included in the msix bundle.'
+    description: 'A comma separated list of file paths, to each msix to be included in the msixbundle output.'
     required: true
     default: ''
   msixbundle-filename:
-    description: 'The filename of the .msixbundle file to be saved (e.g. MyApp_1.0.0.0_x86_x64.msixbundle)'
+    description: 'The filename of the .msixbundle file to be saved (e.g. MyApp_1.0.0.0_x86_x64.msixbundle).'
     required: true
     default: ''
   sdk-version:
-    description: 'The version of makeappx.exe and signtool.exe (default is 10.0.19041.0). For more info, see the official docs at https://docs.microsoft.com/en-us/windows/msix/packaging-tool/bundle-msix-packages#step-1-find-makeappxexe'
+    description: 'The version of makeappx.exe and signtool.exe (default is 10.0.19041.0).'
     required: false
     default: '10.0.19041.0'
   architecture:
-    description: 'The architecture version of makeappx.exe to use (default is x86). For more info, see the official docs at https://docs.microsoft.com/en-us/windows/msix/packaging-tool/bundle-msix-packages#step-1-find-makeappxexe'
+    description: 'The architecture version of makeappx.exe to use (default is x86).'
     required: false
     default: 'x86'
   enable-bundle-signing:
-    description: 'Enables signing the bundle using Microsoft's signtool.exe'
+    description: 'Enables signing the bundle using signtool.exe'
     required: false
     default: false
   certificate-path:
-    description: 'Path to the PFX file of the code signing certificate'
-    required: false
+    description: 'Path to the code signing certificate (i.e., the PFX file).'
     default: ''
   certificate-private-key:
-    description: 'The private key (password) to be used with the PFX file to sign the bundle.'
+    description: 'The private key (password) for the PFX.'
     required: false
     default: ''
   signing-hash-algorithm:
@@ -39,7 +38,7 @@ inputs:
     default: 'SHA256'
 outputs:
   msixbundle-path:
-    description: "The full file path to the generated msixbundle file."
+    description: "The absolute file path to the msixbundle file."
     value: ${{ steps.sign-bundle.outputs.final-msixbundle-file-path }}
 runs:
   using: "composite"
