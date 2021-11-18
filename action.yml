@@ -53,20 +53,24 @@ runs:
         ## ********************************** ##
         ## ******** STEP 1. BUNDLE ********** ##
         ## ********************************** ##
-
-        $msixesFolder = "${{ inputs.msix-folder }}"
-        echo "MSIX input folder -> $msixesFolder"
-
-        $msixBundleFileName = "${{ inputs.msixbundle-filename }}"
-        $msixbundleVersion = "${{ inputs.msixbundle-version }}"
-
-        echo "Adding SDK tools folder to PATH"
+        echo "Setting correct SDK tools folder (added to PATH)"
         $sdkToolsPath = Join-Path -Path "C:\Program Files (x86)\Windows Kits\10\bin" -ChildPath ${{ inputs.sdk-version }} -AdditionalChildPath ${{ inputs.architecture }}
         $env:Path += ";$sdkToolsPath"
 
-        echo "Creating bundle..."
-        # From https://docs.microsoft.com/en-us/windows/msix/packaging-tool/bundle-msix-packages#step-2-bundle-the-packages
+        $msixesFolder = "${{ inputs.msix-folder }}"
+        $msixBundleFileName = "${{ inputs.msixbundle-filename }}"
+        $msixbundleVersion = "${{ inputs.msixbundle-version }}"
+
+        echo "Input folder (contains only MSIX files) -> $msixesFolder"
+        echo "File name for msixbundle -> $msixBundleFileName"
+        echo "Version for msixbundle -> $msixbundleVersion"
+
+        echo "Creating bundle with MakeAppx..."
         MakeAppx.exe bundle /bv $msixbundleVersion /d $msixesFolder /p $msixBundleFileName
+
+        # MakeAppx.exe Docs and Reference 
+        # https://docs.microsoft.com/en-us/windows/msix/package/create-app-package-with-makeappx-tool
+        # https://docs.microsoft.com/en-us/windows/msix/packaging-tool/bundle-msix-packages#step-2-bundle-the-packages
 
         ## ************************************ ##
         ## ********** STEP 2. SIGN ************ ##
@@ -80,7 +84,8 @@ runs:
           $certPath = ${{ inputs.certificate-path }}
           $certKey = ${{ inputs.certificate-private-key }}
 
-          $msixBundlePath = Join-Path -Path $msixesFolder -ChildPath $msixBundleFileName
+          $currentDirectory = Get-Location
+          $msixBundlePath = Join-Path -Path $currentDirectory -ChildPath $msixBundleFileName
 
           # From https://docs.microsoft.com/en-us/windows/msix/packaging-tool/bundle-msix-packages#step-3-sign-the-bundle
           SignTool.exe sign /fd $hashAlgo /a /f $certPath /p $certKey $msixBundlePath
