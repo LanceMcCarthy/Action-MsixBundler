@@ -34,6 +34,7 @@ jobs:
 
           echo "copying MSIX files into a single, separate, folder for processing"
           $tempMsixFolder = Join-Path -Path $currentDirectory -ChildPath "MsixFiles\"
+          New-Item -Path $tempMsixFolder -ItemType Directory -Force
           
           $msixFiles | ForEach-Object {
             Copy-Item -Path $_ -Destination $tempMsixFolder
