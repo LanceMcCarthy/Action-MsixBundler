@@ -89,8 +89,8 @@ runs:
 
         # IMPORTANT - We need to add the SDK's folder to PATH so that we can use the approrpiate MakeAppx and SignTool
         #$sdkToolsPath = Join-Path -Path ";C:\Program Files (x86)\Windows Kits\10\bin" -ChildPath $sdkVersion -AdditionalChildPath $arch
-        $sdkToolsPath = Join-Path -Path ";C:\Program Files (x86)\Windows Kits\10\bin" -ChildPath ${{ inputs.sdk-version }} -AdditionalChildPath ${{ inputs.architecture }}
-        $env:Path += $sdkToolsPath
+        $sdkToolsPath = Join-Path -Path "C:\Program Files (x86)\Windows Kits\10\bin" -ChildPath ${{ inputs.sdk-version }} -AdditionalChildPath ${{ inputs.architecture }}
+        $env:Path += ";$sdkToolsPath"
         
         # From https://docs.microsoft.com/en-us/windows/msix/packaging-tool/bundle-msix-packages#step-2-bundle-the-packages
         MakeAppx.exe bundle /d $inputFolder /p $msixBundlePath
