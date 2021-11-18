@@ -87,14 +87,23 @@ runs:
           $currentDirectory = Get-Location
           $msixBundlePath = Join-Path -Path $currentDirectory -ChildPath $msixBundleFileName
 
-          # From https://docs.microsoft.com/en-us/windows/msix/packaging-tool/bundle-msix-packages#step-3-sign-the-bundle
-          SignTool.exe sign /fd $hashAlgo /a /f $certPath /p $certKey $msixBundlePath
+          try { 
+            # From https://docs.microsoft.com/en-us/windows/msix/packaging-tool/bundle-msix-packages#step-3-sign-the-bundle
+            SignTool.exe sign /fd $hashAlgo /a /f $certPath /p $certKey $msixBundlePath
+          }
+          catch { 
+              Write-Host "An error occurred:"
+              Write-Host $_.ScriptStackTrace
+              exit 1
+          }
 
           Write-Host "Signing complete!"
         } else {
 
           Write-Host "Skipped msixbundle signing."
         }
+
+        if([string]::IsNullOrWhiteSpace($msixBundlePath))
 
         # Set the output variable
         echo "::set-output name=final_path::$msixBundlePath"
