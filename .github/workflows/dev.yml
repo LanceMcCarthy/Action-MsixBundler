@@ -64,7 +64,7 @@ jobs:
           enable-bundle-signing: true
           certificate-path: 'LancelotSoftware.pfx'
           certificate-private-key: ${{ secrets.PFX_PRIVATE_KEY }}
-          sdk-version: "10.0.19041.0"
+          sdk-version: "10.0.18362.0"
           architecture: "x86"
       
       - name: Verify Bundle Output
