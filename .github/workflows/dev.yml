@@ -12,6 +12,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
 
       - name: Decode the Pfx
         id: save-pfx
@@ -23,7 +25,7 @@ jobs:
 
       - name: Test Bundling with Code Signing
         id: bundle-up
-        uses: ./
+        uses: '.\'
         with:
           msix-paths: "TestFiles/AppPackages/MediaFileManager.Desktop_2021.722.1.0_x86.msix, TestFiles/AppPackages/MediaFileManager.Desktop_2021.722.1.0_x64.msix"
           msixbundle-filename: "MediaFileManager.Desktop_2021.722.1.0_x86_x64.msixbundle"
