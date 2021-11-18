@@ -52,8 +52,8 @@ runs:
 
         $paths = ${{ inputs.msix-paths }}.split("{,}")
 
-        $count = $paths.count
-        echo "MSIX files requested for bundling: $count "
+        #$count = $paths.count
+        #echo "MSIX files requested for bundling: $count "
 
         # Creating a folder in temp to copy in and process msix files
         $tempPackagesFolder = Join-Path -Path $env:TEMP -ChildPath "AppPackages"
