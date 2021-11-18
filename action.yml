@@ -79,15 +79,17 @@ runs:
         ## ******************************************* ##
 
         # Get the desired SDK and architecture
-        $sdkVersion = ${{ inputs.sdk-version }}
-        $arch = ${{ inputs.architecture }}
-        $bundleFileName = ${{ inputs.msixbundle-filename }}
+        #$sdkVersion = "${{ inputs.sdk-version }}"
+        #$arch = "${{ inputs.architecture }}"
+        #$bundleFileName = "${{ inputs.msixbundle-filename }}"
 
         # Create a full path for the bundle to be saved to
-        $msixBundlePath = Join-Path -Path $tempPackagesFolder -ChildPath $bundleFileName
+        #$msixBundlePath = Join-Path -Path $tempPackagesFolder -ChildPath $bundleFileName
+        $msixBundlePath = Join-Path -Path $tempPackagesFolder -ChildPath ${{ inputs.msixbundle-filename }}
 
         # IMPORTANT - We need to add the SDK's folder to PATH so that we can use the approrpiate MakeAppx and SignTool
-        $sdkToolsPath = Join-Path -Path ";C:\Program Files (x86)\Windows Kits\10\bin" -ChildPath $sdkVersion -AdditionalChildPath $arch
+        #$sdkToolsPath = Join-Path -Path ";C:\Program Files (x86)\Windows Kits\10\bin" -ChildPath $sdkVersion -AdditionalChildPath $arch
+        $sdkToolsPath = Join-Path -Path ";C:\Program Files (x86)\Windows Kits\10\bin" -ChildPath ${{ inputs.sdk-version }} -AdditionalChildPath ${{ inputs.architecture }}
         $env:Path += $sdkToolsPath
         
         # From https://docs.microsoft.com/en-us/windows/msix/packaging-tool/bundle-msix-packages#step-2-bundle-the-packages
