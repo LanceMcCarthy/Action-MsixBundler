@@ -29,24 +29,22 @@ jobs:
           $currentDirectory = Get-Location
           $packagesFolder = Join-Path -Path $currentDirectory -ChildPath "TestFiles\AppPackages"
           $msixFiles = Get-ChildItem -Path $packagesFolder -Recurse -Include *.msix
-          echo "discovered $msixFiles.count MSIX files"
+          $count = $msixFiles.count
+          echo "discovered $count MSIX files"
 
           echo "copying MSIX files into a single, separate, folder for processing"
           $tempMsixFolder = Join-Path -Path $currentDirectory -ChildPath "MsixFiles"
           
           $msixFiles | ForEach-Object {
-            $outputFileName = Split-Path $_ -leaf
-            $destinationFilePath = Join-Path -Path $tempMsixFolder -ChildPath $outputFileName
+            Copy-Item -Path $_ -Destination $tempMsixFolder
 
-            Copy-Item -Path $_ -Destination $destinationFilePath
-
-            echo "Successfully copied to $destinationFilePath"
+            echo "Successfully copied $_ to $tempMsixFolder"
           }
 
-          $bundleFilePath = Join-Path -Path $tempMsixFolder -ChildPath "MediaFileManager.Desktop_2021.722.1.0_x86_x64.msixbundle"
+          $desiredMsixBundlePath = Join-Path -Path $tempMsixFolder -ChildPath "MediaFileManager.Desktop_2021.722.1.0_x86_x64.msixbundle"
 
           echo "::set-output name=msix_folderpath::$tempMsixFolder"
-          echo "::set-output name=msixbundle_filepath::$bundleFilePath"
+          echo "::set-output name=msixbundle_filepath::$desiredMsixBundlePath"
 
       - name: Verify Gather Output
         shell: pwsh
