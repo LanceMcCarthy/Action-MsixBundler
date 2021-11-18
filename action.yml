@@ -49,29 +49,31 @@ runs:
         ## ******************************************* ##
         ## ********* STEP 1. PROCESS FILES *********** ##
         ## ******************************************* ##
-
+        echo "Splitting file paths..."
         $msixPaths = ${{ inputs.msix-paths }}
         $paths = $msixPaths -split ";"
 
         $count = $paths.count
-        echo "MSIX files requested for bundling: $count "
+        echo "MSIX files requested for bundling: $count"
 
-        $runId = ${{ env.GITHUB_RUN_ID }}
-
-        # Creating a folder in temp to copy in and process msix files
-        $tempPackagesFolder = Join-Path -Path $env:TEMP -ChildPath "AppPackages" -AdditionalChildPath $runId
+        echo "Creating a folder in temp to copy in and process msix files"
+        $tempPackagesFolder = Join-Path -Path $env:TEMP -ChildPath "AppPackages\$env.GITHUB_RUN_NUMBER"
         New-Item -Path $tempPackagesFolder -ItemType Directory -Force
 
-        # clean out any old msix files from a re-run of the same workflow (only reruns will be affected, the temp directory has a RunID suffix)
-        Remove-Item $tempPackagesFolder\*.*
+        echo "Created $tempPackagesFolder"
 
-        # Copy each MSIX file into temporary foler
+        echo "Cleaning old msix files from temp folder"
+        Remove-Item $tempPackagesFolder\*.msix
+
+        echo "Coping each MSIX file into temporary folder"
         $paths | ForEach-Object {
           $outputFileName = Split-Path $_ -leaf
           $inputFileName = $_.Trim()
           $destinationPath = Join-Path -Path $tempPackagesFolder -ChildPath $outputFileName
 
           Copy-Item -Path $inputFileName -Destination $destinationPath
+
+          echo "Successfully copied $destinationPath"
         }
 
         ## ******************************************* ##
@@ -83,15 +85,19 @@ runs:
         #$arch = "${{ inputs.architecture }}"
         #$bundleFileName = "${{ inputs.msixbundle-filename }}"
 
-        # Create a full path for the bundle to be saved to
+        echo "Assembling path for final msixbundle file..."
         #$msixBundlePath = Join-Path -Path $tempPackagesFolder -ChildPath $bundleFileName
         $msixBundlePath = Join-Path -Path $tempPackagesFolder -ChildPath ${{ inputs.msixbundle-filename }}
+        echo "will use $msixBundlePath"
 
         # IMPORTANT - We need to add the SDK's folder to PATH so that we can use the approrpiate MakeAppx and SignTool
         #$sdkToolsPath = Join-Path -Path ";C:\Program Files (x86)\Windows Kits\10\bin" -ChildPath $sdkVersion -AdditionalChildPath $arch
+
+        echo "Adding SDK tools folder to PATH"
         $sdkToolsPath = Join-Path -Path "C:\Program Files (x86)\Windows Kits\10\bin" -ChildPath ${{ inputs.sdk-version }} -AdditionalChildPath ${{ inputs.architecture }}
         $env:Path += ";$sdkToolsPath"
         
+        echo "Creating bundle..."
         # From https://docs.microsoft.com/en-us/windows/msix/packaging-tool/bundle-msix-packages#step-2-bundle-the-packages
         MakeAppx.exe bundle /d $inputFolder /p $msixBundlePath
 

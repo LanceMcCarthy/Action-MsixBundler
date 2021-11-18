@@ -22,11 +22,27 @@ jobs:
           $certificatePath = Join-Path -Path $currentDirectory -ChildPath "LancelotSoftware.pfx"
           [IO.File]::WriteAllBytes("$certificatePath", $pfx_cert_byte)
 
+      - name: Decode the Pfx
+        id: gather-msix-files
+        shell: pwsh
+        run: |
+          $currentDirectory = Get-Location
+          $packagesFolder = Join-Path -Path $currentDirectory -ChildPath "TestFiles\AppPackages"
+          $msixFiles = Get-ChildItem -Path $packagesFolder -Recurse -Include *.msix
+          echo "discovered $msixFiles.count MSIX files"
+          $msixPaths = ""
+          $msixFiles | ForEach-Object {
+            $msixPaths += "$_.FullName;"
+          }
+          $msixPaths.trim(";")
+
+          echo "::set-output name=msix-files::$(echo $msixPaths)"
+
       - name: Test Bundling with Code Signing
         id: bundler
         uses: ./
         with:
-          msix-paths: "TestFiles/AppPackages/MediaFileManager.Desktop_2021.722.1.0_x86.msix;TestFiles/AppPackages/MediaFileManager.Desktop_2021.722.1.0_x64.msix"
+          msix-paths: ${{ steps.gather-msix-files.outputs.msix-files }}
           msixbundle-filename: "MediaFileManager.Desktop_2021.722.1.0_x86_x64.msixbundle"
           enable-bundle-signing: true
           certificate-path: 'LancelotSoftware.pfx'
