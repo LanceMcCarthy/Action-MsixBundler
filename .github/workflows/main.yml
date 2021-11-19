@@ -33,7 +33,7 @@ jobs:
 
           $x86FilePath = Join-Path -Path $packagesFolder -ChildPath "MediaFileManager.Desktop_2021.1118.1.0_x86.msix"
           $urlx86 = "https://dvlup.blob.core.windows.net/general-app-files/StaticResources/DevOpsRequired/MediaFileManager.Desktop_2021.1118.1.0_x86.msix"
-          Invoke-WebRequest $urlx64 -OutFile $x86FilePath
+          Invoke-WebRequest $urlx86 -OutFile $x86FilePath
 
           $x64FilePath = Join-Path -Path $packagesFolder -ChildPath "MediaFileManager.Desktop_2021.1118.1.0_x64.msix"
           $urlx64 = "https://dvlup.blob.core.windows.net/general-app-files/StaticResources/DevOpsRequired/MediaFileManager.Desktop_2021.1118.1.0_x64.msix"
