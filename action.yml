@@ -52,7 +52,7 @@ runs:
       run: |
         $msixBundlePath = ${{ inputs.msixbundle-filepath }}
 
-        ${{ github.action_path }}/bundleAndSign.ps1 -MsixSourceFolder ${{ inputs.msix-folder }} -BundleFilePath ${{ inputs.msixbundle-filepath }} -$BundleVersion ${{ inputs.msixbundle-version }} -Architecture ${{ inputs.architecture }} -SdkVersion ${{ inputs.sdk-version }} -IsSigningEnabled ${{ inputs.enable-bundle-signing }} -PfxPrivateKey ${{ inputs.certificate-private-key }} -PfxFilePath ${{ inputs.certificate-path }} -HashAlgo ${{ inputs.signing-hash-algorithm }}
+        ./bundleAndSign.ps1 -MsixSourceFolder ${{ inputs.msix-folder }} -BundleFilePath ${{ inputs.msixbundle-filepath }} -$BundleVersion ${{ inputs.msixbundle-version }} -Architecture ${{ inputs.architecture }} -SdkVersion ${{ inputs.sdk-version }} -IsSigningEnabled ${{ inputs.enable-bundle-signing }} -PfxPrivateKey ${{ inputs.certificate-private-key }} -PfxFilePath ${{ inputs.certificate-path }} -HashAlgo ${{ inputs.signing-hash-algorithm }}
 
         if([string]::IsNullOrWhiteSpace($msixBundlePath)){
           echo "The output file path is empty, something went wrong. Please check the build log output for details."
