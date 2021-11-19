@@ -50,72 +50,9 @@ runs:
     - id: bundle
       shell: pwsh
       run: |
-        ## ********************************** ##
-        ## ******** STEP 1. BUNDLE ********** ##
-        ## ********************************** ##
-        echo "Setting correct SDK tools folder (added to PATH)"
-        $sdkToolsPath = Join-Path -Path "C:\Program Files (x86)\Windows Kits\10\bin" -ChildPath ${{ inputs.sdk-version }} -AdditionalChildPath ${{ inputs.architecture }}
-        $env:Path += ";$sdkToolsPath"
+        $msixBundlePath = ${{ inputs.msixbundle-filepath }}
 
-        $msixesFolder = "${{ inputs.msix-folder }}"
-        $msixBundleFilePath = "${{ inputs.msixbundle-filepath }}"
-        $msixbundleVersion = "${{ inputs.msixbundle-version }}"
-
-        echo "Input folder (contains only MSIX files) -> $msixesFolder"
-        echo "Desired File name for msixbundle -> $msixBundleFilePath"
-        echo "Desired Version for msixbundle -> $msixbundleVersion"
-
-        echo "Creating bundle with MakeAppx..."
-        MakeAppx.exe bundle /bv $msixbundleVersion /d $msixesFolder /p $msixBundleFilePath
-
-        # MakeAppx.exe Docs and Reference 
-        # https://docs.microsoft.com/en-us/windows/msix/package/create-app-package-with-makeappx-tool
-        # https://docs.microsoft.com/en-us/windows/msix/packaging-tool/bundle-msix-packages#step-2-bundle-the-packages
-
-        ## ************************************ ##
-        ## ********** STEP 2. SIGN ************ ##
-        ## ************************************ ##
-
-        # check if the user wants to sign the bundle
-        if (${{ inputs.enable-bundle-signing }}){
-          echo "Beginning code signing of msixbundle file."
-
-          $hashAlgo = ${{ inputs.signing-hash-algorithm }}
-          $certPath = ${{ inputs.certificate-path }}
-          $certKey = ${{ inputs.certificate-private-key }}
-          
-          $isCertPathValid = Test-Path -Path $certPath
-          if($isCertPathValid -eq $false){
-            Write-Error "You must have a valid path value for the signing certificate."
-            exit 1
-          }
-          
-          if([string]::IsNullOrWhiteSpace($certKey)){
-            Write-Error "You must have a password for the PFX certificate."
-            exit 1
-          }
-
-          $currentDirectory = Get-Location
-          $msixBundlePath = Join-Path -Path $currentDirectory -ChildPath $msixBundleFilePath
-
-          try {
-            echo "Parameters validated, beginning signing..."
-
-            SignTool.exe sign /fd $hashAlgo /a /f $certPath /p $certKey $msixBundlePath
-
-            # Reference Docs
-            # https://docs.microsoft.com/en-us/windows/msix/packaging-tool/bundle-msix-packages#step-3-sign-the-bundle
-          }
-          catch { 
-              echo "An error occurred:"
-              echo $_.ScriptStackTrace
-              exit 1
-          }
-
-          echo "Signing complete!"
-        } else {
-          echo "Bundle signing is not enabled, skipping signing."
-        }
+        ${{ github.action_path }}/bundleAndSign.ps1 -MsixSourceFolder ${{ inputs.msix-folder }} -BundleFilePath ${{ inputs.msixbundle-filepath }} -$BundleVersion ${{ inputs.msixbundle-version }} -Architecture ${{ inputs.architecture }} -SdkVersion ${{ inputs.sdk-version }} -IsSigningEnabled ${{ inputs.enable-bundle-signing }} -PfxPrivateKey ${{ inputs.certificate-private-key }} -PfxFilePath ${{ inputs.certificate-path }} -HashAlgo ${{ inputs.signing-hash-algorithm }}
 
         if([string]::IsNullOrWhiteSpace($msixBundlePath)){
           echo "The output file path is empty, something went wrong. Please check the build log output for details."
