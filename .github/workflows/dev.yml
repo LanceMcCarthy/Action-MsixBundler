@@ -36,56 +36,55 @@ jobs:
           $x64FilePath = Join-Path -Path $packagesFolder -ChildPath "MediaFileManager.Desktop_2021.1118.1.0_x64.msix"
           $urlx64 = "https://dvlup.blob.core.windows.net/general-app-files/StaticResources/DevOpsRequired/MediaFileManager.Desktop_2021.1118.1.0_x64.msix"
 
-          Write-Output "Downloading demo MSIX files..." -Foreground yellow
+          echo "Downloading demo MSIX files..."
 
           Invoke-WebRequest $urlx86 -OutFile $x86FilePath
           Invoke-WebRequest $urlx64 -OutFile $x64FilePath
 
-          Write-Output "All MSIX files downloaded to $packagesFolder." -Foreground green
+          echo "All MSIX files downloaded to $packagesFolder."
           echo "::set-output name=msixes_folder::$packagesFolder"
           
       - name: Copy MSIX files to empty folder to emulate copying build results
         id: gather
         shell: pwsh
         run: |
-          
-
           # $currentDirectory = Get-Location
           # $packagesFolder = Join-Path -Path $currentDirectory -ChildPath "AppPackages\"
           
           $packagesFolder = "${{ steps.downloader.outputs.msixes_folder }}"
-          Write-Output "MSIX Packages folder set to: $packagesFolder"
+          echo "MSIX Packages folder set to: $packagesFolder"
 
-          Write-Output "Looking for MSIX files..." -Foreground yellow
+          echo "Looking for MSIX files..." -Foreground yellow
           $msixFiles = Get-ChildItem -Path $packagesFolder -Recurse -Include *.msix
 
           $count = $msixFiles.count
 
           if($count -gt 0){
-            Write-Output "Discovered $count MSIX files" -Foreground green
+            echo "Discovered $count MSIX files"
           } else {
-            Write-Error "There were no MSIX files in the source folder."
+            echo "There were no MSIX files in the source folder."
             exit 1
           }
           
-          Write-Output "Creating a new MsixFolder..."
+          echo "Creating a new MsixFolder..."
           $tempMsixFolder = Join-Path -Path $currentDirectory -ChildPath "MsixFiles\"
           New-Item -Path $tempMsixFolder -ItemType Directory -Force
 
           # Clear any lingering files
-          Write-Output "Deleting any old MSIX files in folder"
+          echo "Deleting any old MSIX files in folder"
           Remove-Item "$tempMsixFolder\*.msix"
           
           $msixFiles | ForEach-Object {
             Copy-Item -Path $_ -Destination $tempMsixFolder
-            Write-Output "Successfully copied $_ to $tempMsixFolder"
+            echo "Successfully copied $_ to $tempMsixFolder"
           }
 
-          Write-Output "Creating new folder for msixbundles to be saved to..." -Foreground yellow
+          echo "Creating new folder for msixbundles to be saved to..."
+
           $msixBundlesFolder = Join-Path -Path $tempMsixFolder -ChildPath "MsixBundles\"
           New-Item -Path $msixBundlesFolder -ItemType Directory -Force
 
-          Write-Output "Created $msixBundlesFolder" -Foreground green
+          echo "Created $msixBundlesFolder"
 
           $prefix = 'MediaFileManager.Desktop_'
           $bundleVersion = "2021.1118.1.0"

@@ -53,7 +53,7 @@ runs:
         ## ********************************** ##
         ## ******** STEP 1. BUNDLE ********** ##
         ## ********************************** ##
-        Write-Host "Setting correct SDK tools folder (added to PATH)"
+        echo "Setting correct SDK tools folder (added to PATH)"
         $sdkToolsPath = Join-Path -Path "C:\Program Files (x86)\Windows Kits\10\bin" -ChildPath ${{ inputs.sdk-version }} -AdditionalChildPath ${{ inputs.architecture }}
         $env:Path += ";$sdkToolsPath"
 
@@ -61,11 +61,11 @@ runs:
         $msixBundleFilePath = "${{ inputs.msixbundle-filepath }}"
         $msixbundleVersion = "${{ inputs.msixbundle-version }}"
 
-        Write-Host "Input folder (contains only MSIX files) -> $msixesFolder"
-        Write-Host "Desired File name for msixbundle -> $msixBundleFilePath"
-        Write-Host "Desired Version for msixbundle -> $msixbundleVersion"
+        echo "Input folder (contains only MSIX files) -> $msixesFolder"
+        echo "Desired File name for msixbundle -> $msixBundleFilePath"
+        echo "Desired Version for msixbundle -> $msixbundleVersion"
 
-        Write-Host "Creating bundle with MakeAppx..." -ForegroundColor green
+        echo "Creating bundle with MakeAppx..."
         MakeAppx.exe bundle /bv $msixbundleVersion /d $msixesFolder /p $msixBundleFilePath
 
         # MakeAppx.exe Docs and Reference 
@@ -78,7 +78,7 @@ runs:
 
         # check if the user wants to sign the bundle
         if (${{ inputs.enable-bundle-signing }}){
-          Write-Host "Beginning code signing of msixbundle file."
+          echo "Beginning code signing of msixbundle file."
 
           $hashAlgo = ${{ inputs.signing-hash-algorithm }}
           $certPath = ${{ inputs.certificate-path }}
@@ -99,7 +99,7 @@ runs:
           $msixBundlePath = Join-Path -Path $currentDirectory -ChildPath $msixBundleFilePath
 
           try {
-            Write-Host "Parameters validated, beginning signing..." -ForegroundColor green
+            echo "Parameters validated, beginning signing..."
 
             SignTool.exe sign /fd $hashAlgo /a /f $certPath /p $certKey $msixBundlePath
 
@@ -107,18 +107,18 @@ runs:
             # https://docs.microsoft.com/en-us/windows/msix/packaging-tool/bundle-msix-packages#step-3-sign-the-bundle
           }
           catch { 
-              Write-Error "An error occurred:"
-              Write-Host $_.ScriptStackTrace
+              echo "An error occurred:"
+              echo $_.ScriptStackTrace
               exit 1
           }
 
-          Write-Host "Signing complete!"
+          echo "Signing complete!"
         } else {
-          Write-Host "Bundle signing is not enabled, skipping signing." -ForegroundColor yellow
+          echo "Bundle signing is not enabled, skipping signing."
         }
 
         if([string]::IsNullOrWhiteSpace($msixBundlePath)){
-          Write-Error "The output file path is empty, something went wrong. Please check the build log output for details."
+          echo "The output file path is empty, something went wrong. Please check the build log output for details."
           exit 1
         }
 
