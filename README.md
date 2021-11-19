@@ -25,9 +25,9 @@ Below are the action's inputs that need to be defined in the Action's `with` blo
 
 The action will copy the file path to an output variable that you can use in subsequent workflow steps
 
-| Output | Default Value | Summary |
-|----------|--------|---------|---------|
-| `msixbundle_path` | none | The absolute file path to the msixbundle file. |
+| Output | Summary |
+|----------|--------|
+| `msixbundle_path` | The absolute file path to the generated msixbundle file. |
 
 In the following example, notice how the step has the id of `bundler`. In the next step, we can get the output value of `msixbundle_path` using the `${{ steps.bundler.outputs.msixbundle_path }}` syntax.
 
@@ -84,7 +84,7 @@ The most common expected use of this is to bundle all the msix files and then si
       Write-Output $path_to_my_msix_bundle
 ```
 
-> If you would like to see some Powershell script exampel that finds all the msix files and copies them into a folder, visit 
+> If you would like to see some Powershell script example that finds all the msix files and copies them into a folder, visit 
 
 ### Bundle without Signing
 
@@ -110,7 +110,7 @@ If you want to just bundle everything without signing, it just pass the three re
 
 ## Important
 
-If you need to use a environment variable for a `with` input, you must use the `${{ env.Name }}` syntax and **not** `$env:Name`. See [Github Contexts](https://docs.github.com/en/actions/reference/context-and-expression-syntax-for-github-actions#contexts) documentation for more help.
+If you need to use a environment variable for a `with` input, you must use the `${{ env.Name }}` syntax and **not** `$env:Name`. See [GitHub Contexts](https://docs.github.com/en/actions/reference/context-and-expression-syntax-for-github-actions#contexts) documentation for more help.
 
 ### Using Environment Variables
 
