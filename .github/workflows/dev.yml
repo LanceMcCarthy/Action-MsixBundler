@@ -21,58 +21,83 @@ jobs:
           $currentDirectory = Get-Location
           $certificatePath = Join-Path -Path $currentDirectory -ChildPath "LancelotSoftware.pfx"
           [IO.File]::WriteAllBytes("$certificatePath", $pfx_cert_byte)
+          echo "::set-output name=cert_path::$certificatePath"
 
-      - name: Gather MSIX files
-        id: gather
+      - name: Download test MSIX files
+        id: download-files
         shell: pwsh
         run: |
           $currentDirectory = Get-Location
-          $packagesFolder = Join-Path -Path $currentDirectory -ChildPath "TestFiles\AppPackages"
+          $packagesFolder = Join-Path -Path $currentDirectory -ChildPath "AppPackages\"
+          New-Item -Path $packagesFolder -ItemType Directory -Force
+
+          $x86FilePath = Join-Path -Path $packagesFolder -ChildPath "MediaFileManager.Desktop_2021.1118.1.0_x86.msix"
+          $urlx86 = "https://dvlup.blob.core.windows.net/general-app-files/StaticResources/DevOpsRequired/MediaFileManager.Desktop_2021.1118.1.0_x86.msix"
+          Invoke-WebRequest $urlx64 -OutFile $x86FilePath
+
+          $x64FilePath = Join-Path -Path $packagesFolder -ChildPath "MediaFileManager.Desktop_2021.1118.1.0_x64.msix"
+          $urlx64 = "https://dvlup.blob.core.windows.net/general-app-files/StaticResources/DevOpsRequired/MediaFileManager.Desktop_2021.1118.1.0_x64.msix"
+          Invoke-WebRequest $urlx64 -OutFile $x64FilePath
+          
+      - name: Copy MSIX files to empty folder to emulate copying build results
+        id: gather
+        shell: pwsh
+        run: |
+          $bundleVersion = "2021.1118.1.0"
+
+          $currentDirectory = Get-Location
+          $packagesFolder = Join-Path -Path $currentDirectory -ChildPath "AppPackages\"
           $msixFiles = Get-ChildItem -Path $packagesFolder -Recurse -Include *.msix
           $count = $msixFiles.count
-          echo "discovered $count MSIX files"
+          Write-Output "discovered $count MSIX files"
 
-          echo "copying MSIX files into a single, separate, folder for processing"
+          Write-Output "copying MSIX files into a single, separate, folder for processing"
           $tempMsixFolder = Join-Path -Path $currentDirectory -ChildPath "MsixFiles\"
           New-Item -Path $tempMsixFolder -ItemType Directory -Force
+
+          # Clear any lingering files
+          Remove-Item "$tempMsixFolder\*.msix"
           
           $msixFiles | ForEach-Object {
             Copy-Item -Path $_ -Destination $tempMsixFolder
-            echo "Successfully copied $_ to $tempMsixFolder"
+            Write-Output "Successfully copied $_ to $tempMsixFolder"
           }
 
-          $desiredMsixBundleFileName = "MediaFileManager.Desktop_2021.722.1.0_x86_x64.msixbundle"
+          Write-Output "Creating folder for msixbundles"
+          $msixBundlesFolder = Join-Path -Path $tempMsixFolder -ChildPath "MsixBundles\"
+          New-Item -Path $msixBundlesFolder -ItemType Directory -Force
+
+          $bfn = "MediaFileManager.Desktop_$bundleVersion_x86_x64.msixbundle"
+          $bundleFilePath = Join-Path -Path $msixBundlesFolder -ChildPath $bfn
 
           echo "::set-output name=msix_folderpath::$tempMsixFolder"
-          echo "::set-output name=msixbundle_filename::$desiredMsixBundleFileName"
+          echo "::set-output name=msixbundle_filename::$bundleFilePath"
+          echo "::set-output name=msixbundle_version::$bundleVersion"
 
       - name: Verify Gather Output
         shell: pwsh
         run: |
-          $msixesFolder = "${{ steps.gather.outputs.msix_folderpath }}"
-          $bundleFileName = "${{ steps.gather.outputs.msixbundle_filename }}"
-          echo "Input MSIXes Folder Path => $msixesFolder"
-          echo "Output File Name => $bundleFileName"
+          Write-Output "Msix Folder Path: ${{ steps.gather.outputs.msix_folderpath }}"
+          Write-Output "Desired Bundle Version: ${{ steps.bundler.outputs.msixbundle_version }}"
+          Write-Output "Desired Bundle Path: ${{ steps.gather.outputs.msixbundle_filepath }}"
       
       - name: Test Bundling with Code Signing
         id: bundler
         uses: ./
         with:
           msix-folder: ${{ steps.gather.outputs.msix_folderpath }}
-          msixbundle-filename: ${{ steps.gather.outputs.msixbundle_filename }}
-          msixbundle-version: "2021.722.1.0"
+          msixbundle-filepath: ${{ steps.gather.outputs.msixbundle_filepath }}
+          msixbundle-version: ${{ steps.gather.outputs.msixbundle_version }}
           enable-bundle-signing: true
           certificate-path: 'LancelotSoftware.pfx'
           certificate-private-key: ${{ secrets.PFX_PRIVATE_KEY }}
-          sdk-version: "10.0.18362.0"
+          sdk-version: "10.0.19041.0"
           architecture: "x86"
       
       - name: Verify Bundle Output
         shell: pwsh
         run: |
-          $msixesFolder = "${{ steps.gather.outputs.msix_folderpath }}"
-          $bundleFileName = "${{ steps.gather.outputs.msixbundle_filename }}"
-          $msixBundlePath = "${{ steps.bundler.outputs.msixbundle_path }}"
-          echo "Input Folder Path => $msixesFolder"
-          echo "Desired File Name => $bundleFileName"
-          echo "Generated msixbundle path => $msixBundlePath"
+          Write-Output "Msix Folder Path: ${{ steps.gather.outputs.msix_folderpath }}"
+          Write-Output "Desired Bundle Version: ${{ steps.bundler.outputs.msixbundle_version }}"
+          Write-Output "Desired Bundle Path: ${{ steps.gather.outputs.msixbundle_filepath }}"
+          Write-Output "Generated msixbundle path => ${{ steps.bundler.outputs.msixbundle_path }}"

@@ -6,11 +6,11 @@ branding:
   color: 'purple'
 inputs:
   msix-folder:
-    description: 'The complete folder path containing all the MSIX files to be bundled.'
+    description: 'The absolute path to the folder containing all the MSIX files to be bundled.'
     required: true
     default: ''
-  msixbundle-filename:
-    description: 'The filename to be used for the .msixbundle (MyApp_1.0.0.0_x86_x64.msixbundle).'
+  msixbundle-filepath:
+    description: 'The absolute file path to be used for the .msixbundle (C:\MyFolder\MyApp_1.0.0.0_x86_x64.msixbundle).'
     required: true
     default: ''
   msixbundle-version:
@@ -53,20 +53,20 @@ runs:
         ## ********************************** ##
         ## ******** STEP 1. BUNDLE ********** ##
         ## ********************************** ##
-        echo "Setting correct SDK tools folder (added to PATH)"
+        Write-Host "Setting correct SDK tools folder (added to PATH)"
         $sdkToolsPath = Join-Path -Path "C:\Program Files (x86)\Windows Kits\10\bin" -ChildPath ${{ inputs.sdk-version }} -AdditionalChildPath ${{ inputs.architecture }}
         $env:Path += ";$sdkToolsPath"
 
         $msixesFolder = "${{ inputs.msix-folder }}"
-        $msixBundleFileName = "${{ inputs.msixbundle-filename }}"
+        $msixBundleFilePath = "${{ inputs.msixbundle-filepath }}"
         $msixbundleVersion = "${{ inputs.msixbundle-version }}"
 
-        echo "Input folder (contains only MSIX files) -> $msixesFolder"
-        echo "File name for msixbundle -> $msixBundleFileName"
-        echo "Version for msixbundle -> $msixbundleVersion"
+        Write-Host "Input folder (contains only MSIX files) -> $msixesFolder"
+        Write-Host "Desired File name for msixbundle -> $msixBundleFilePath"
+        Write-Host "Desired Version for msixbundle -> $msixbundleVersion"
 
-        echo "Creating bundle with MakeAppx..."
-        MakeAppx.exe bundle /bv $msixbundleVersion /d $msixesFolder /p $msixBundleFileName
+        Write-Host "Creating bundle with MakeAppx..." -ForegroundColor green
+        MakeAppx.exe bundle /bv $msixbundleVersion /d $msixesFolder /p $msixBundleFilePath
 
         # MakeAppx.exe Docs and Reference 
         # https://docs.microsoft.com/en-us/windows/msix/package/create-app-package-with-makeappx-tool
@@ -78,34 +78,47 @@ runs:
 
         # check if the user wants to sign the bundle
         if (${{ inputs.enable-bundle-signing }}){
-          Write-Host "Signing msix bundle."
+          Write-Host "Beginning code signing of msixbundle file."
 
           $hashAlgo = ${{ inputs.signing-hash-algorithm }}
           $certPath = ${{ inputs.certificate-path }}
           $certKey = ${{ inputs.certificate-private-key }}
+          
+          $isCertPathValid = Test-Path -Path $certPath
+          if($isCertPathValid -eq $false){
+            Write-Error "You must have a valid path value for the signing certificate."
+            exit 1
+          }
+          
+          if([string]::IsNullOrWhiteSpace($certKey)){
+            Write-Error "You must have a password for the PFX certificate."
+            exit 1
+          }
 
           $currentDirectory = Get-Location
-          $msixBundlePath = Join-Path -Path $currentDirectory -ChildPath $msixBundleFileName
+          $msixBundlePath = Join-Path -Path $currentDirectory -ChildPath $msixBundleFilePath
 
-          try { 
-            # From https://docs.microsoft.com/en-us/windows/msix/packaging-tool/bundle-msix-packages#step-3-sign-the-bundle
+          try {
+            Write-Host "Parameters validated, beginning signing..." -ForegroundColor green
+
             SignTool.exe sign /fd $hashAlgo /a /f $certPath /p $certKey $msixBundlePath
+
+            # Reference Docs
+            # https://docs.microsoft.com/en-us/windows/msix/packaging-tool/bundle-msix-packages#step-3-sign-the-bundle
           }
           catch { 
-              Write-Host "An error occurred:"
+              Write-Error "An error occurred:"
               Write-Host $_.ScriptStackTrace
               exit 1
           }
 
           Write-Host "Signing complete!"
         } else {
-
-          Write-Host "Skipped msixbundle signing."
+          Write-Host "Bundle signing is not enabled, skipping signing." -ForegroundColor yellow
         }
 
         if([string]::IsNullOrWhiteSpace($msixBundlePath)){
-          Write-Host "The output file path is empty, something went wrong. Check the log output for details."
-          Write-Host $_.ScriptStackTrace
+          Write-Error "The output file path is empty, something went wrong. Please check the build log output for details."
           exit 1
         }
 

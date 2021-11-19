@@ -1,1 +1,0 @@
-This folder will contain msix files to be used during test workflow runs.
