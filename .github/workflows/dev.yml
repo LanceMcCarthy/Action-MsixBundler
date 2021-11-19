@@ -90,9 +90,16 @@ jobs:
           $bundleVersion = "2021.1118.1.0"
           $suffix = '_x86_x64.msixbundle'
 
-          $bfn = $prefix + $bundleVersion + $suffix
-          $bundleFilePath = Join-Path -Path $msixBundlesFolder -ChildPath $bfn
+          echo "Combining msixbundle filename parts..."
 
+          $bfn = $prefix + $bundleVersion + $suffix
+
+          echo "Filename set to: $bfn"
+          
+          echo "Combining msixbundle filename parts..."
+          $bundleFilePath = Join-Path -Path $msixBundlesFolder -ChildPath $bfn
+          echo "Bundle file path set to: $bundleFilePath."
+          
           echo "::set-output name=msix_folderpath::$tempMsixFolder"
           echo "::set-output name=msixbundle_filename::$bundleFilePath"
           echo "::set-output name=msixbundle_version::$bundleVersion"
