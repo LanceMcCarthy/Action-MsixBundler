@@ -53,12 +53,12 @@ runs:
         $MsixSourceFolder = "${{ inputs.msix-folder }}"
         $BundleFilePath = "${{ inputs.msixbundle-filepath }}"
         $BundleVersion = "${{ inputs.msixbundle-version }}"
-        Architecture = "${{ inputs.architecture }}"
+        $Architecture = "${{ inputs.architecture }}"
         $SdkVersion = "${{ inputs.sdk-version }}"
         $IsSigningEnabled = ${{ inputs.enable-bundle-signing }}
         $PfxPrivateKey = "${{ inputs.certificate-private-key }}"
         $PfxFilePath = "${{ inputs.certificate-path }}"
-        $HashAlgo = ${{ inputs.signing-hash-algorithm }}
+        $HashAlgo = "${{ inputs.signing-hash-algorithm }}"
         
         ## ************************************ ##
         ## ********* VALIDATE INPUTS ********** ##
