@@ -72,7 +72,7 @@ runs:
         }
 
         if ([string]::IsNullOrWhiteSpace($BundleFilePath)) {
-            echo "Missing file path for the msixbundle."
+            echo 'Missing file path for the msixbundle.'
             echo 'You must enter a value to be used for the msixbundle file. For example C:\MyApp\MyApp_1.0.0.0_x86_x64.msixbundle.'
             exit 1
         }
@@ -80,7 +80,7 @@ runs:
         $isBundlePathValid = Test-Path -Path $BundleFilePath -IsValid
 
         if ($isBundlePathValid -eq $false) {
-            echo "Invalid file path used for the msixbundle file."
+            echo 'Invalid file path used for the msixbundle file.'
             echo 'You must use a valid file path for the msixbundle to be saved to. For example C:\MyApp\MyApp_1.0.0.0_x86_x64.msixbundle.'
             exit 1
         }
@@ -109,24 +109,24 @@ runs:
         ## ************************************ ##
 
         if ($IsSigningEnabled) {
-            echo "Beginning code signing of msixbundle file."
+            echo 'Beginning code signing of msixbundle file.'
 
             # With signing enabled, time to validate the required inputs
             $isCertPathValid = Test-Path -Path $PfxFilePath
 
             if ($isCertPathValid -eq $false) {
-                echo "You must have a valid path value for the signing certificate."
+                echo 'You must have a valid path value for the signing certificate.'
                 exit 1
             }
             
             if ([string]::IsNullOrWhiteSpace($PfxPrivateKey)) {
-                echo "You must have a password for the PFX certificate."
+                echo 'You must have a password for the PFX certificate.'
                 exit 1
             }
 
             # sign
             try {
-                echo "Parameters validated, beginning signing..."
+                echo 'Parameters validated, beginning signing...'
 
                 SignTool.exe sign /fd $HashAlgo /a /f $PfxFilePath /p $PfxPrivateKey $BundleFilePath
 
@@ -134,25 +134,25 @@ runs:
                 # https://docs.microsoft.com/en-us/windows/msix/packaging-tool/bundle-msix-packages#step-3-sign-the-bundle
             }
             catch { 
-                echo "An error occurred:"
+                echo 'An error occurred:'
                 echo $_.ScriptStackTrace
                 exit 1
             }
 
-            echo "Signing complete!"
+            echo 'Signing complete!'
 
         }
         else {
-            echo "Bundle signing is not enabled, skipping signing."
+            echo 'Bundle signing is not enabled, skipping signing.'
         }
 
         if ([string]::IsNullOrWhiteSpace($BundleFilePath)) {
-            echo "The output file path is empty, something went wrong. Please check the build log output for details."
+            echo 'The output file path is empty, something went wrong. Please check the build log output for details.'
             exit 1
         }
         
         if([string]::IsNullOrWhiteSpace($BundleFilePath)){
-          echo "The output file path is empty, something went wrong. Please check the build log output for details."
+          echo 'The output file path is empty, something went wrong. Please check the build log output for details.'
           exit 1
         }
 
