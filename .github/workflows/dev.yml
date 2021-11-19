@@ -101,14 +101,14 @@ jobs:
           echo "Bundle file path set to: $bundleFilePath."
           
           echo "::set-output name=msix_folderpath::$tempMsixFolder"
-          echo "::set-output name=msixbundle_filename::$bundleFilePath"
+          echo "::set-output name=msixbundle_filepath::$bundleFilePath"
           echo "::set-output name=msixbundle_version::$bundleVersion"
 
       - name: Verify Gather Output
         shell: pwsh
         run: |
           $a = "${{ steps.gather.outputs.msix_folderpath }}"
-          $b = "${{ steps.bundler.outputs.msixbundle_version }}"
+          $b = "${{ steps.gather.outputs.msixbundle_version }}"
           $c = "${{ steps.gather.outputs.msixbundle_filepath }}"
           echo "Msix Folder Path: $a"
           echo "Desired Bundle Version: $b"
@@ -131,7 +131,7 @@ jobs:
         shell: pwsh
         run: |
           $a = "${{ steps.gather.outputs.msix_folderpath }}"
-          $b = "${{ steps.bundler.outputs.msixbundle_version }}"
+          $b = "${{ steps.gather.outputs.msixbundle_version }}"
           $c = "${{ steps.gather.outputs.msixbundle_filepath }}"
           $d = "${{ steps.bundler.outputs.msixbundle_path }}"
           echo "Msix Folder Path: $s"
