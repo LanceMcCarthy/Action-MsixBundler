@@ -89,7 +89,7 @@ runs:
         ## ******** STEP 1. BUNDLE ********** ##
         ## ********************************** ##
 
-        echo "Setting correct SDK tools folder (added to PATH)"
+        echo 'Setting correct SDK tools folder (added to PATH)'
         $sdkToolsPath = Join-Path -Path 'C:\Program Files (x86)\Windows Kits\10\bin' -ChildPath $SdkVersion -AdditionalChildPath $Architecture
         $env:Path += ";$sdkToolsPath"
 
@@ -97,7 +97,7 @@ runs:
         echo "Desired File path for msixbundle -> $BundleFilePath"
         echo "Desired Version for msixbundle -> $BundleVersion"
 
-        echo "Creating bundle with MakeAppx..."
+        echo 'Creating bundle with MakeAppx...'
         MakeAppx.exe bundle /bv $BundleVersion /d $MsixSourceFolder /p $BundleFilePath
 
         # MakeAppx.exe Docs and Reference 
