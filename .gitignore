@@ -205,13 +205,11 @@ ecf/
 rcf/
 
 # Windows Store app package directories and files
-AppPackages/
+
 BundleArtifacts/
 Package.StoreAssociation.xml
 _pkginfo.txt
-*.appx
-*.appxbundle
-*.appxupload
+
 
 # Visual Studio cache files
 # files ending in .cache can be ignored
