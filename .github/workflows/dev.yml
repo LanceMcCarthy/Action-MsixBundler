@@ -77,9 +77,12 @@ jobs:
       - name: Verify Gather Output
         shell: pwsh
         run: |
-          Write-Output "Msix Folder Path: ${{ steps.gather.outputs.msix_folderpath }}"
-          Write-Output "Desired Bundle Version: ${{ steps.bundler.outputs.msixbundle_version }}"
-          Write-Output "Desired Bundle Path: ${{ steps.gather.outputs.msixbundle_filepath }}"
+          $a = "${{ steps.gather.outputs.msix_folderpath }}"
+          $b = "${{ steps.bundler.outputs.msixbundle_version }}"
+          $c = "${{ steps.gather.outputs.msixbundle_filepath }}"
+          echo "Msix Folder Path: $a"
+          echo "Desired Bundle Version: $b"
+          echo "Desired Bundle Path: $c"
       
       - name: Test Bundling with Code Signing
         id: bundler
@@ -97,7 +100,11 @@ jobs:
       - name: Verify Bundle Output
         shell: pwsh
         run: |
-          Write-Output "Msix Folder Path: ${{ steps.gather.outputs.msix_folderpath }}"
-          Write-Output "Desired Bundle Version: ${{ steps.bundler.outputs.msixbundle_version }}"
-          Write-Output "Desired Bundle Path: ${{ steps.gather.outputs.msixbundle_filepath }}"
-          Write-Output "Generated msixbundle path => ${{ steps.bundler.outputs.msixbundle_path }}"
+          $a = "${{ steps.gather.outputs.msix_folderpath }}"
+          $b = "${{ steps.bundler.outputs.msixbundle_version }}"
+          $c = "${{ steps.gather.outputs.msixbundle_filepath }}"
+          $d = "${{ steps.bundler.outputs.msixbundle_path }}"
+          echo "Msix Folder Path: $s"
+          echo "Desired Bundle Version: $b"
+          echo "Desired Bundle Path: $c"
+          echo "Generated msixbundle path => $d"
