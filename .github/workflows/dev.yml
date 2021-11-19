@@ -3,10 +3,10 @@ name: Development
 on:
   push:
     branches:
-      - development
+      - dev
 
 jobs:
-  test_bunding_with_signing:
+  bundle_and_sign:
     runs-on: windows-latest
     name: Test Bundling with Signing
     steps:
@@ -126,6 +126,94 @@ jobs:
           certificate-private-key: ${{ secrets.PFX_PRIVATE_KEY }}
           sdk-version: "10.0.19041.0"
           architecture: "x86"
+      
+      - name: Verify Bundle Output
+        shell: pwsh
+        run: |
+          $a = "${{ steps.gather.outputs.msix_folderpath }}"
+          $b = "${{ steps.gather.outputs.msixbundle_version }}"
+          $c = "${{ steps.gather.outputs.msixbundle_filepath }}"
+          $d = "${{ steps.bundler.outputs.msixbundle_path }}"
+          echo "Msix Folder Path: $s"
+          echo "Desired Bundle Version: $b"
+          echo "Desired Bundle Path: $c"
+          echo "Generated msixbundle path => $d"
+          
+      - name: Copy MSIX files to empty folder to emulate copying build results
+        id: gather
+        shell: pwsh
+        run: |
+          $currentDirectory = Get-Location
+          # $packagesFolder = Join-Path -Path $currentDirectory -ChildPath "AppPackages\"
+          
+          $packagesFolder = "${{ steps.downloader.outputs.msixes_folder }}"
+          echo "MSIX Packages folder set to: $packagesFolder"
+
+          echo "Looking for MSIX files..."
+          $msixFiles = Get-ChildItem -Path $packagesFolder -Recurse -Include *.msix
+
+          $count = $msixFiles.count
+
+          if($count -gt 0){
+            echo "Discovered $count MSIX files"
+          } else {
+            echo "There were no MSIX files in the source folder."
+            exit 1
+          }
+          
+          echo "Creating a new MsixFolder..."
+          $tempMsixFolder = Join-Path -Path $currentDirectory -ChildPath "MsixFiles\"
+          New-Item -Path $tempMsixFolder -ItemType Directory -Force
+
+          # Clear any lingering files
+          echo "Deleting any old MSIX files in folder"
+          Remove-Item "$tempMsixFolder\*.msix"
+          
+          $msixFiles | ForEach-Object {
+            Copy-Item -Path $_ -Destination $tempMsixFolder
+            echo "Successfully copied $_ to $tempMsixFolder"
+          }
+
+          echo "Creating new folder for msixbundles to be saved to..."
+
+          $msixBundlesFolder = Join-Path -Path $tempMsixFolder -ChildPath "MsixBundles\"
+          New-Item -Path $msixBundlesFolder -ItemType Directory -Force
+
+          echo "Created $msixBundlesFolder"
+
+          $prefix = 'MediaFileManager.Desktop_'
+          $bundleVersion = "2021.1118.1.0"
+          $suffix = '_x86_x64.msixbundle'
+
+          echo "Combining msixbundle filename parts..."
+          $bfn = $prefix + $bundleVersion + $suffix
+          echo "Filename set to: $bfn"
+          
+          echo "Combining msixbundle filename parts..."
+          $bundleFilePath = Join-Path -Path $msixBundlesFolder -ChildPath $bfn
+          echo "Bundle file path set to: $bundleFilePath."
+          
+          echo "::set-output name=msix_folderpath::$tempMsixFolder"
+          echo "::set-output name=msixbundle_filepath::$bundleFilePath"
+          echo "::set-output name=msixbundle_version::$bundleVersion"
+
+      - name: Verify Gather Output
+        shell: pwsh
+        run: |
+          $a = "${{ steps.gather.outputs.msix_folderpath }}"
+          $b = "${{ steps.gather.outputs.msixbundle_version }}"
+          $c = "${{ steps.gather.outputs.msixbundle_filepath }}"
+          echo "Msix Folder Path: $a"
+          echo "Desired Bundle Version: $b"
+          echo "Desired Bundle Path: $c"
+      
+      - name: Test Bundling with Code Signing
+        id: bundler
+        uses: ./
+        with:
+          msix-folder: ${{ steps.gather.outputs.msix_folderpath }}
+          msixbundle-filepath: ${{ steps.gather.outputs.msixbundle_filepath }}
+          msixbundle-version: ${{ steps.gather.outputs.msixbundle_version }}
       
       - name: Verify Bundle Output
         shell: pwsh
