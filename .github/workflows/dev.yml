@@ -48,13 +48,13 @@ jobs:
         id: gather
         shell: pwsh
         run: |
-          # $currentDirectory = Get-Location
+          $currentDirectory = Get-Location
           # $packagesFolder = Join-Path -Path $currentDirectory -ChildPath "AppPackages\"
           
           $packagesFolder = "${{ steps.downloader.outputs.msixes_folder }}"
           echo "MSIX Packages folder set to: $packagesFolder"
 
-          echo "Looking for MSIX files..." -Foreground yellow
+          echo "Looking for MSIX files..."
           $msixFiles = Get-ChildItem -Path $packagesFolder -Recurse -Include *.msix
 
           $count = $msixFiles.count
