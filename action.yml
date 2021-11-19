@@ -63,10 +63,11 @@ runs:
         ## ************************************ ##
         ## ********* VALIDATE INPUTS ********** ##
         ## ************************************ ##
+
         $isSourcePathValid = Test-Path -Path $MsixSourceFolder
 
         if ($isSourcePathValid -eq $false) {
-            Write-Ouput "You must have a valid path value for the folder containing the MSIX files."
+            Write-Output "You must have a valid path value for the folder containing the MSIX files."
             exit 1
         }
 
@@ -80,7 +81,7 @@ runs:
 
         if ($isBundlePathValid -eq $false) {
             Write-Error "Invalid file path used for the msixbundle file."
-            Write-Ouput 'You must use a valid file path for the msixbundle to be saved to. For example C:\MyApp\MyApp_1.0.0.0_x86_x64.msixbundle.'
+            Write-Output 'You must use a valid file path for the msixbundle to be saved to. For example C:\MyApp\MyApp_1.0.0.0_x86_x64.msixbundle.'
             exit 1
         }
 
@@ -114,7 +115,7 @@ runs:
             $isCertPathValid = Test-Path -Path $PfxFilePath
 
             if ($isCertPathValid -eq $false) {
-                Write-Ouput "You must have a valid path value for the signing certificate."
+                Write-Output "You must have a valid path value for the signing certificate."
                 exit 1
             }
             
