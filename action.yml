@@ -50,14 +50,14 @@ runs:
     - id: bundle
       shell: pwsh
       run: |
-        $MsixSourceFolder = ${{ inputs.msix-folder }}
-        $BundleFilePath = ${{ inputs.msixbundle-filepath }}
-        $BundleVersion = ${{ inputs.msixbundle-version }}
-        Architecture = ${{ inputs.architecture }}
-        $SdkVersion = ${{ inputs.sdk-version }}
+        $MsixSourceFolder = "${{ inputs.msix-folder }}"
+        $BundleFilePath = "${{ inputs.msixbundle-filepath }}"
+        $BundleVersion = "${{ inputs.msixbundle-version }}"
+        Architecture = "${{ inputs.architecture }}"
+        $SdkVersion = "${{ inputs.sdk-version }}"
         $IsSigningEnabled = ${{ inputs.enable-bundle-signing }}
-        $PfxPrivateKey = ${{ inputs.certificate-private-key }}
-        $PfxFilePath = ${{ inputs.certificate-path }}
+        $PfxPrivateKey = "${{ inputs.certificate-private-key }}"
+        $PfxFilePath = "${{ inputs.certificate-path }}"
         $HashAlgo = ${{ inputs.signing-hash-algorithm }}
         
         ## ************************************ ##
