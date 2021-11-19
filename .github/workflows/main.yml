@@ -135,6 +135,11 @@ jobs:
 
           $fileExists = Test-Path -Path $filePath -PathType Leaf
           echo "Validate msixbundle exists => $fileExists"
+
+          if($fileExists){
+            echo "Deleting msixbundle file to prepare for Test 2..."
+            Remove-Item -Path $filePath -Force
+          }
       
       - name: Test 2! Bundling without Signing (and minimal inputs)
         id: bundler2
