@@ -1,0 +1,159 @@
+name: Development
+
+on:
+  push:
+    branches:
+      - dev
+
+jobs:
+  bundle_and_sign:
+    runs-on: windows-latest
+    name: Test Bundling with Signing
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Decode the Pfx
+        id: save-pfx
+        shell: pwsh
+        run: |
+          $pfx_cert_byte = [System.Convert]::FromBase64String("${{ secrets.PFX_BASE64 }}")
+          $currentDirectory = Get-Location
+          $certificatePath = Join-Path -Path $currentDirectory -ChildPath "LancelotSoftware.pfx"
+          [IO.File]::WriteAllBytes("$certificatePath", $pfx_cert_byte)
+          echo "::set-output name=cert_path::$certificatePath"
+
+      - name: Download test MSIX files
+        id: downloader
+        shell: pwsh
+        run: |
+          $currentDirectory = Get-Location
+          $packagesFolder = Join-Path -Path $currentDirectory -ChildPath "AppPackages\"
+          New-Item -Path $packagesFolder -ItemType Directory -Force
+
+          $x86FilePath = Join-Path -Path $packagesFolder -ChildPath "MediaFileManager.Desktop_2021.1118.1.0_x86.msix"
+          $urlx86 = "https://dvlup.blob.core.windows.net/general-app-files/StaticResources/DevOpsRequired/MediaFileManager.Desktop_2021.1118.1.0_x86.msix"
+          $x64FilePath = Join-Path -Path $packagesFolder -ChildPath "MediaFileManager.Desktop_2021.1118.1.0_x64.msix"
+          $urlx64 = "https://dvlup.blob.core.windows.net/general-app-files/StaticResources/DevOpsRequired/MediaFileManager.Desktop_2021.1118.1.0_x64.msix"
+
+          echo "Downloading demo MSIX files..."
+
+          Invoke-WebRequest $urlx86 -OutFile $x86FilePath
+          Invoke-WebRequest $urlx64 -OutFile $x64FilePath
+
+          echo "All MSIX files downloaded to $packagesFolder."
+          echo "::set-output name=msixes_folder::$packagesFolder"
+          
+      - name: Copy MSIX files to empty folder to emulate copying build results
+        id: gather
+        shell: pwsh
+        run: |
+          $currentDirectory = Get-Location
+          # $packagesFolder = Join-Path -Path $currentDirectory -ChildPath "AppPackages\"
+          
+          $packagesFolder = "${{ steps.downloader.outputs.msixes_folder }}"
+          echo "MSIX Packages folder set to: $packagesFolder"
+
+          echo "Looking for MSIX files..."
+          $msixFiles = Get-ChildItem -Path $packagesFolder -Recurse -Include *.msix
+
+          $count = $msixFiles.count
+
+          if($count -gt 0){
+            echo "Discovered $count MSIX files"
+          } else {
+            echo "There were no MSIX files in the source folder."
+            exit 1
+          }
+          
+          echo "Creating a new MsixFolder..."
+          $tempMsixFolder = Join-Path -Path $currentDirectory -ChildPath "MsixFiles\"
+          New-Item -Path $tempMsixFolder -ItemType Directory -Force
+
+          # Clear any lingering files
+          echo "Deleting any old MSIX files in folder"
+          Remove-Item "$tempMsixFolder\*.msix"
+          
+          $msixFiles | ForEach-Object {
+            Copy-Item -Path $_ -Destination $tempMsixFolder
+            echo "Successfully copied $_ to $tempMsixFolder"
+          }
+
+          echo "Creating new folder for msixbundles to be saved to..."
+
+          $msixBundlesFolder = Join-Path -Path $tempMsixFolder -ChildPath "MsixBundles\"
+          New-Item -Path $msixBundlesFolder -ItemType Directory -Force
+
+          echo "Created $msixBundlesFolder"
+
+          $prefix = 'MediaFileManager.Desktop_'
+          $bundleVersion = "2021.1118.1.0"
+          $suffix = '_x86_x64.msixbundle'
+
+          echo "Combining msixbundle filename parts..."
+
+          $bfn = $prefix + $bundleVersion + $suffix
+
+          echo "Filename set to: $bfn"
+          
+          echo "Combining msixbundle filename parts..."
+          $bundleFilePath = Join-Path -Path $msixBundlesFolder -ChildPath $bfn
+          echo "Bundle file path set to: $bundleFilePath."
+          
+          echo "::set-output name=msix_folderpath::$tempMsixFolder"
+          echo "::set-output name=msixbundle_filepath::$bundleFilePath"
+          echo "::set-output name=msixbundle_version::$bundleVersion"
+
+      - name: Verify Gather Output
+        shell: pwsh
+        run: |
+          $a = "${{ steps.gather.outputs.msix_folderpath }}"
+          $b = "${{ steps.gather.outputs.msixbundle_version }}"
+          $c = "${{ steps.gather.outputs.msixbundle_filepath }}"
+          echo "Msix Folder Path: $a"
+          echo "Desired Bundle Version: $b"
+          echo "Desired Bundle Path: $c"
+      
+      - name: Test 1! Bundling with Signing (and multiple inputs)
+        id: bundler1
+        uses: ./
+        with:
+          msix-folder: ${{ steps.gather.outputs.msix_folderpath }}
+          msixbundle-filepath: ${{ steps.gather.outputs.msixbundle_filepath }}
+          msixbundle-version: ${{ steps.gather.outputs.msixbundle_version }}
+          enable-bundle-signing: true
+          certificate-path: 'LancelotSoftware.pfx'
+          certificate-private-key: ${{ secrets.PFX_PRIVATE_KEY }}
+          sdk-version: "10.0.19041.0"
+          architecture: "x86"
+
+      - name: Verify Signed Bundle Output
+        shell: pwsh
+        run: |
+          $filePath = "${{ steps.bundler1.outputs.msixbundle_path }}"
+          echo "Generated msixbundle path => $filePath"
+
+          $fileExists = Test-Path -Path $filePath -PathType Leaf
+          echo "Validate msixbundle exists => $fileExists"
+
+          if($fileExists){
+            echo "Deleting msixbundle file to prepare for Test 2..."
+            Remove-Item -Path $filePath -Force
+          }
+      
+      - name: Test 2! Bundling without Signing (and minimal inputs)
+        id: bundler2
+        uses: ./
+        with:
+          msix-folder: ${{ steps.gather.outputs.msix_folderpath }}
+          msixbundle-filepath: ${{ steps.gather.outputs.msixbundle_filepath }}
+          msixbundle-version: ${{ steps.gather.outputs.msixbundle_version }}
+
+      - name: Verify Unsigned Bundle Output
+        shell: pwsh
+        run: |
+          $filePath = "${{ steps.bundler2.outputs.msixbundle_path }}"
+          echo "Generated msixbundle path => $filePath"
+          
+          $fileExists = Test-Path -Path $filePath -PathType Leaf
+          echo "Validate msixbundle exists => $fileExists"

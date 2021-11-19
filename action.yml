@@ -1,0 +1,160 @@
+name: 'MSIX Bundler'
+description: 'This action creates an msixbundle file from a list of MSIX packages'
+author: 'Lance McCarthy'
+branding:
+  icon: 'box'
+  color: 'yellow'
+inputs:
+  msix-folder:
+    description: 'The absolute path to the folder containing all the MSIX files to be bundled.'
+    required: true
+    default: ''
+  msixbundle-filepath:
+    description: 'The absolute file path to be used for the .msixbundle (C:\MyFolder\MyApp_1.0.0.0_x86_x64.msixbundle).'
+    required: true
+    default: ''
+  msixbundle-version:
+    description: 'Specifies the version number of the bundle. The version number MUST be in four parts separated by periods in the form: <Major>.<Minor>.<Build>.<Revision>.'
+    required: true
+    default: '0.0.0.0'
+  sdk-version:
+    description: 'The version of makeappx.exe and signtool.exe (default is 10.0.19041.0).'
+    required: false
+    default: '10.0.19041.0'
+  architecture:
+    description: 'The architecture version of makeappx.exe to use (default is x86).'
+    required: false
+    default: 'x86'
+  enable-bundle-signing:
+    description: 'Enables signing the bundle using signtool.exe'
+    required: false
+    default: false
+  certificate-path:
+    description: 'Path to the code signing certificate (i.e., the PFX file).'
+    default: ''
+  certificate-private-key:
+    description: 'The private key (password) for the PFX.'
+    required: false
+    default: ''
+  signing-hash-algorithm:
+    description: 'The hash algorithm used for signing (default is SHA256).'
+    required: false
+    default: 'SHA256'
+outputs:
+  msixbundle_path:
+    description: "The absolute file path to the generated msixbundle file."
+    value: ${{ steps.bundle.outputs.final_path }}
+runs:
+  using: "composite"
+  steps:
+    - id: bundle
+      shell: pwsh
+      run: |
+        $MsixSourceFolder = "${{ inputs.msix-folder }}"
+        $BundleFilePath = "${{ inputs.msixbundle-filepath }}"
+        $BundleVersion = "${{ inputs.msixbundle-version }}"
+        $Architecture = "${{ inputs.architecture }}"
+        $SdkVersion = "${{ inputs.sdk-version }}"
+        $IsSigningEnabled = ${{ inputs.enable-bundle-signing }}
+        $PfxPrivateKey = "${{ inputs.certificate-private-key }}"
+        $PfxFilePath = "${{ inputs.certificate-path }}"
+        $HashAlgo = "${{ inputs.signing-hash-algorithm }}"
+        
+        ## ************************************ ##
+        ## ********* VALIDATE INPUTS ********** ##
+        ## ************************************ ##
+
+        $isSourcePathValid = Test-Path -Path $MsixSourceFolder
+
+        if ($isSourcePathValid -eq $false) {
+            echo 'You must have a valid path value for the folder containing the MSIX files.'
+            exit 1
+        }
+
+        if ([string]::IsNullOrWhiteSpace($BundleFilePath)) {
+            echo 'Missing file path for the msixbundle.'
+            echo 'You must enter a value to be used for the msixbundle file. For example C:\MyApp\MyApp_1.0.0.0_x86_x64.msixbundle.'
+            exit 1
+        }
+
+        $isBundlePathValid = Test-Path -Path $BundleFilePath -IsValid
+
+        if ($isBundlePathValid -eq $false) {
+            echo 'Invalid file path used for the msixbundle file.'
+            echo 'You must use a valid file path for the msixbundle to be saved to. For example C:\MyApp\MyApp_1.0.0.0_x86_x64.msixbundle.'
+            exit 1
+        }
+
+        ## ********************************** ##
+        ## ******** STEP 1. BUNDLE ********** ##
+        ## ********************************** ##
+
+        echo 'Setting correct SDK tools folder (added to PATH)'
+        $sdkToolsPath = Join-Path -Path 'C:\Program Files (x86)\Windows Kits\10\bin' -ChildPath $SdkVersion -AdditionalChildPath $Architecture
+        $env:Path += ";$sdkToolsPath"
+
+        echo "Input folder (contains only MSIX files) -> $MsixSourceFolder"
+        echo "Desired File path for msixbundle -> $BundleFilePath"
+        echo "Desired Version for msixbundle -> $BundleVersion"
+
+        echo 'Creating bundle with MakeAppx...'
+        MakeAppx.exe bundle /bv $BundleVersion /d $MsixSourceFolder /p $BundleFilePath
+
+        # MakeAppx.exe Docs and Reference 
+        # https://docs.microsoft.com/en-us/windows/msix/package/create-app-package-with-makeappx-tool
+        # https://docs.microsoft.com/en-us/windows/msix/packaging-tool/bundle-msix-packages#step-2-bundle-the-packages
+
+        ## ************************************ ##
+        ## ********** STEP 2. SIGN ************ ##
+        ## ************************************ ##
+
+        if ($IsSigningEnabled) {
+            echo 'Beginning code signing of msixbundle file.'
+
+            # With signing enabled, time to validate the required inputs
+            $isCertPathValid = Test-Path -Path $PfxFilePath
+
+            if ($isCertPathValid -eq $false) {
+                echo 'You must have a valid path value for the signing certificate.'
+                exit 1
+            }
+            
+            if ([string]::IsNullOrWhiteSpace($PfxPrivateKey)) {
+                echo 'You must have a password for the PFX certificate.'
+                exit 1
+            }
+
+            # sign
+            try {
+                echo 'Parameters validated, beginning signing...'
+
+                SignTool.exe sign /fd $HashAlgo /a /f $PfxFilePath /p $PfxPrivateKey $BundleFilePath
+
+                # Reference Docs
+                # https://docs.microsoft.com/en-us/windows/msix/packaging-tool/bundle-msix-packages#step-3-sign-the-bundle
+            }
+            catch { 
+                echo 'An error occurred:'
+                echo $_.ScriptStackTrace
+                exit 1
+            }
+
+            echo 'Signing complete!'
+
+        }
+        else {
+            echo 'Bundle signing is not enabled, skipping signing.'
+        }
+
+        if ([string]::IsNullOrWhiteSpace($BundleFilePath)) {
+            echo 'The output file path is empty, something went wrong. Please check the build log output for details.'
+            exit 1
+        }
+        
+        if([string]::IsNullOrWhiteSpace($BundleFilePath)){
+          echo 'The output file path is empty, something went wrong. Please check the build log output for details.'
+          exit 1
+        }
+
+        # Set the output variable
+        echo "::set-output name=final_path::$BundleFilePath"
