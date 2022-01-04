@@ -55,7 +55,7 @@ runs:
         $BundleVersion = "${{ inputs.msixbundle-version }}"
         $Architecture = "${{ inputs.architecture }}"
         $SdkVersion = "${{ inputs.sdk-version }}"
-        $IsSigningEnabled = ${{ inputs.enable-bundle-signing }}
+        $IsSigningEnabled = [bool]::Parse("${{ inputs.enable-bundle-signing }}")
         $PfxPrivateKey = "${{ inputs.certificate-private-key }}"
         $PfxFilePath = "${{ inputs.certificate-path }}"
         $HashAlgo = "${{ inputs.signing-hash-algorithm }}"
